@@ -57,8 +57,8 @@ AstIf *new_ast_conditional(Arena *arena, AstNode *Condition, AstNode *body, AstN
   return if_n;
 }
 
-AstGlobal *new_ast_global(Arena *arena, const char *name, size_t size) {
-  AstGlobal *global_n = arena_alloc(arena, sizeof(AstGlobal));
-  *global_n = (AstGlobal){.name = name, .size = size};
+AstVar *new_ast_var(Arena *arena, const char *name, size_t size) {
+  AstVar *global_n = arena_alloc(arena, sizeof(AstVar));
+  *global_n = (AstVar){.name = name, .size = size};
   return global_n;
 }

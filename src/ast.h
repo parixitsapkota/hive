@@ -62,7 +62,7 @@ typedef struct {
 typedef struct {
   const char *name;
   size_t size;
-} AstGlobal;
+} AstVar;
 
 typedef enum {
   AST_ATOM,
@@ -96,7 +96,7 @@ struct AstNode {
     AstFunctionCall *function_call_n;
     AstIf *if_n;
     AstWhile *while_n;
-    AstGlobal *global_n;
+    AstVar *var_n;
     AstNode *node;
     const char *name_s;
   };
@@ -130,6 +130,6 @@ AstFunction *new_ast_function(Arena *arena, const char *name, Hs *params_tab, Hs
 AstFunctionCall *new_ast_function_call(Arena *arena, const char *name, AstNode *args,
                                        size_t argc);
 AstIf *new_ast_conditional(Arena *arena, AstNode *Condition, AstNode *body, AstNode *chain);
-AstGlobal *new_ast_global(Arena *arena, const char *name, size_t size);
+AstVar *new_ast_var(Arena *arena, const char *name, size_t size);
 
 #endif // _TRIDENT_AST_H_

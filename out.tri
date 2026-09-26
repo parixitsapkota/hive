@@ -1,0 +1,147 @@
+def module "examples/array.b"
+
+static num 5
+
+extern "putchar"
+
+func $main() 0 {
+@L1:
+  %t1 = &alloc
+  %t2 = &alloc
+  %t3 = &alloc
+  %t4 = &const 50
+  %t5 = &const 0
+  %t6 = &const 8
+  %t7 = &mul %t5, %t6
+  %t8 = &gaddr num
+  %t9 = &add %t7, %t8
+  &store %t9, %t4
+  %t10 = &const 49
+  %t11 = &const 1
+  %t12 = &const 8
+  %t13 = &mul %t11, %t12
+  %t14 = &gaddr num
+  %t15 = &add %t13, %t14
+  &store %t15, %t10
+  %t16 = &const 57
+  %t17 = &const 2
+  %t18 = &const 8
+  %t19 = &mul %t17, %t18
+  %t20 = &gaddr num
+  %t21 = &add %t19, %t20
+  &store %t21, %t16
+  %t22 = &const 55
+  %t23 = &const 3
+  %t24 = &const 8
+  %t25 = &mul %t23, %t24
+  %t26 = &gaddr num
+  %t27 = &add %t25, %t26
+  &store %t27, %t22
+  %t28 = &const 53
+  %t29 = &const 4
+  %t30 = &const 8
+  %t31 = &mul %t29, %t30
+  %t32 = &gaddr num
+  %t33 = &add %t31, %t32
+  &store %t33, %t28
+  %t34 = &const 0
+  &store %t1, %t34
+@L2:
+  %t35 = &load %t1
+  %t36 = &const 4
+  %t37 = &lt %t35, %t36
+  br %t37, .L3, .L4
+@L3:
+  %t38 = &load %t1
+  %t39 = &const 1
+  %t40 = &add %t38, %t39
+  &store %t2, %t40
+@L5:
+  %t41 = &load %t2
+  %t42 = &const 5
+  %t43 = &lt %t41, %t42
+  br %t43, .L6, .L7
+@L6:
+  %t44 = &load %t1
+  %t45 = &const 8
+  %t46 = &mul %t44, %t45
+  %t47 = &gaddr num
+  %t48 = &add %t46, %t47
+  %t49 = &load %t48
+  %t50 = &load %t2
+  %t51 = &const 8
+  %t52 = &mul %t50, %t51
+  %t53 = &gaddr num
+  %t54 = &add %t52, %t53
+  %t55 = &load %t54
+  %t56 = &gt %t49, %t55
+  br %t56, .L9, .L10
+@L9:
+  %t57 = &load %t1
+  %t58 = &const 8
+  %t59 = &mul %t57, %t58
+  %t60 = &gaddr num
+  %t61 = &add %t59, %t60
+  %t62 = &load %t61
+  &store %t3, %t62
+  %t63 = &load %t2
+  %t64 = &const 8
+  %t65 = &mul %t63, %t64
+  %t66 = &gaddr num
+  %t67 = &add %t65, %t66
+  %t68 = &load %t67
+  %t69 = &load %t1
+  %t70 = &const 8
+  %t71 = &mul %t69, %t70
+  %t72 = &gaddr num
+  %t73 = &add %t71, %t72
+  &store %t73, %t68
+  %t74 = &load %t3
+  %t75 = &load %t2
+  %t76 = &const 8
+  %t77 = &mul %t75, %t76
+  %t78 = &gaddr num
+  %t79 = &add %t77, %t78
+  &store %t79, %t74
+  jmp .L8
+@L10:
+@L8:
+  %t80 = &load %t2
+  %t81 = &const 1
+  %t82 = &add %t80, %t81
+  &store %t2, %t82
+  jmp .L5
+@L7:
+  %t83 = &load %t1
+  %t84 = &const 1
+  %t85 = &add %t83, %t84
+  &store %t1, %t85
+  jmp .L2
+@L4:
+  %t86 = &const 0
+  &store %t1, %t86
+@L11:
+  %t87 = &load %t1
+  %t88 = &const 5
+  %t89 = &lt %t87, %t88
+  br %t89, .L12, .L13
+@L12:
+  %t90 = &gaddr num
+  %t91 = &load %t1
+  %t92 = &const 8
+  %t93 = &mul %t91, %t92
+  %t94 = &add %t90, %t93
+  %t95 = &load %t94
+  %t96 = call 1, $putchar(%t95)
+  %t97 = &load %t1
+  %t98 = &const 1
+  %t99 = &add %t97, %t98
+  &store %t1, %t99
+  jmp .L11
+@L13:
+  %t100 = &const 10
+  %t101 = call 1, $putchar(%t100)
+  %t102 = &const 0
+  ret %t102
+}
+

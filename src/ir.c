@@ -378,9 +378,9 @@ size_t ir_expr_f(Ir *ir, AstNode *node, AstScope *scope, IrNode **block_tail) {
 }
 
 void ir_auto_s(Ir *ir, AstNode *curr, AstScope *scope, IrNode **block_tail) {
-  VarInfo *info = lookup_symbol(scope, curr->name_s);
+  VarInfo *info = lookup_symbol(scope, curr->var_n->name);
   if (!info) {
-    ir_fatal("Symbol '%s' not found in scope", curr->name_s);
+    ir_fatal("Symbol '%s' not found in scope", curr->var_n->name);
   }
   info->temp_dest = emit_op(ir, block_tail, OP_ALLOC, 0, 0);
 }
@@ -557,7 +557,8 @@ void gen_ir(Ir *ir) {
       add_ir_node(&ir->ir_tail, ir_function_s(ir, curr));
     } else if (curr->kind == AST_GLOBAL) {
       ir->t_node = curr;
-      add_ir_node(&ir->ir_tail, new_ir_named(ir->ir_arena, IR_GLOBAL, curr->global_n->name, 0));
+      add_ir_node(&ir->ir_tail,
+                  new_ir_named(ir->ir_arena, IR_GLOBAL, curr->var_n->name, curr->var_n->size));
     } else if (curr->kind == AST_EXTRN) {
       ir->t_node = curr;
       ir_extrn_s(ir, curr);
@@ -589,7 +590,7 @@ void dump_ir(Ir *ir, FILE *f) {
   for (IrNode *curr = ir->ir_head; curr != NULL; curr = curr->next) {
     switch (curr->kind) {
     case IR_MODULE: fprintf(f, "def module \"%s\"\n\n", curr->name); break;
-    case IR_GLOBAL: fprintf(f, "static %s\n\n", curr->name); break;
+    case IR_GLOBAL: fprintf(f, "static %s %zu\n\n", curr->name, curr->temp_dest); break;
     case IR_EXTRN: fprintf(f, "extern \"%s\"\n\n", curr->name); break;
 
     case IR_FUNCTION: {
