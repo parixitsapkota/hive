@@ -1,9 +1,9 @@
 puts(str) {
   extrn putchar, char;
-  auto i;
+  auto i, c;
   i = 0;
-  while (char(str, i)) {
-    putchar(char(str, i));
+  while (c = char(str, i)) {
+    putchar(c);
     ++i;
   }
 }
