@@ -157,6 +157,18 @@ run:
 	@printf "\n\n"
 	@./$(OUTPUT) -v
 	@printf "\n\n"
+	@mkdir -p lib/ examples/
+
+	@./$(OUTPUT) -i "res/brt.b" -o "lib/brt.asm"
+	@nasm -f elf64 "lib/brt.asm" -o "lib/brt1.o"
+	@nasm -f elf64 "res/brt.asm" -o "lib/brt0.o"
+	@ld -r "lib/brt0.o" "lib/brt1.o" -o "lib/brt.o"
+
+	@./$(OUTPUT) -i "res/libb.b" -o "lib/libb.asm"
+	@nasm -f elf64 "lib/libb.asm" -o "lib/libb1.o"
+	@nasm -f elf64 "res/libb.asm" -o "lib/libb0.o"
+	@ld -r "lib/libb0.o" "lib/libb1.o" -o "lib/libb.o"
+
 	@for file in $(EXAMPLE); do \
 		name=$$(basename "$$file" .b); \
 		printf "$(COLOR_MAGENTA)[+] Compiling $$file...$(COLOR_RESET)\n"; \
@@ -164,7 +176,7 @@ run:
 		printf "$(COLOR_GREEN)[+] Assembling examples/$$name.asm...$(COLOR_RESET)\n"; \
 		nasm -f elf64 "examples/$$name.asm" -o "examples/$$name.o" || exit 1; \
 		printf "$(COLOR_YELLOW)[#] Linking examples/$$name.o...$(COLOR_RESET)\n"; \
-		ld -o "examples/$$name.bin" "examples/$$name.o" || exit 1; \
+		ld -o "examples/$$name.bin" "examples/$$name.o" "lib/libb.o" "lib/brt.o" || exit 1; \
 		./examples/$$name.bin; status=$$?; \
 		printf "$(COLOR_BLUE)[+] $$name.b : Exit-code : $(COLOR_RED)%d$(COLOR_RESET)\n\n" $$status; \
 	done

@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "ir.h"
 
@@ -34,6 +35,11 @@ static void asm_op(FILE *f, const IrNode *n, size_t *alloc_i, size_t max_t) {
   switch (n->op) {
   case OP_CONST:
     fprintf(f, "  mov rax, %zu\n", n->imm);
+    st(f, d, "rax");
+    break;
+
+  case OP_DATA:
+    fprintf(f, "  lea rax, [rel __ro_data_%zu]\n", n->imm);
     st(f, d, "rax");
     break;
 
@@ -163,6 +169,7 @@ static void asm_call(FILE *f, const IrNode *n) {
 }
 
 static void asm_function(FILE *f, const IrNode *fn) {
+  putc('\n', f);
   size_t max_t = fn->params, n_alloc = 0;
   for (const IrNode *t = fn->nodes; t; t = t->next) {
     if (t->kind != IR_OPERATION && t->kind != IR_CALL) {
@@ -246,16 +253,26 @@ void dump_x86_64_nasm(Ir *ir, FILE *f) {
   for (const IrNode *curr = ir->ir_head; curr; curr = curr->next) {
     if (curr->kind == IR_FUNCTION) {
       asm_function(f, curr);
+    } else if (curr->kind == IR_EXTRN) {
+      fprintf(f, "extern %s\n", curr->name);
     }
   }
-  fprintf(f,
-          // _start [BRT](b runtime)
-          "global _start\n"
-          "_start:\n"
-          "  call main\n"
-          "  mov rdi, rax\n"
-          "  mov rax, 0x3C\n"
-          "  syscall\n\n");
+
+  fprintf(f, "section .rodata\n\n");
+
+  for (Token *tok = ir->p->l->tok_head->next; tok != NULL; tok = tok->next) {
+    if (tok->kind == STRING) {
+      fprintf(f, "__ro_data_%zu: db ", tok->int_lit);
+      size_t len = strlen(tok->lexeme);
+      for (size_t i = 0; i <= len; ++i) {
+        fprintf(f, "0x%02x", (unsigned char)tok->lexeme[i]);
+        if (i < len) {
+          fprintf(f, ", ");
+        }
+      }
+      fprintf(f, "\n\n");
+    }
+  }
 
   fprintf(f, "section .note.GNU-stack noalloc noexec nowrite progbits\n");
 }

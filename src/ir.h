@@ -37,6 +37,7 @@ typedef enum {
   OP_STORE,
   // Constant immediate
   OP_CONST,
+  OP_DATA,
   OP_GLOBAL_L,
   OP_GLOBAL_S,
   OP_GLOBAL_ADDR,

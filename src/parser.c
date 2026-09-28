@@ -27,25 +27,35 @@ Parser *init_parser(Lexer *l) {
   return p;
 }
 
-AstNode *parse_auto_s(Parser *p, Hs *symtab, size_t *stack_offset, AstNode **body_tail) {
+void *parse_auto_s(Parser *p, Hs *symtab, size_t *stack_offset, AstNode **body_tail) {
   expect_and_consume(p, AUTO);
 
-  do {
-    const char *var_name = p->tok->lexeme;
-    VarInfo *info = var_info(p->var_info, AUTO_VAR, *stack_offset);
-    put_to_hash_set(symtab, var_name, info);
+  for (;;) {
+    const char *name = p->tok->lexeme;
+    expect_and_consume(p, IDENTIFIER);
 
-    ++*stack_offset;
-    pconsume(p);
+    size_t size = 1;
+    if (is_kind(p, O_BRACKET)) {
+      pconsume(p);
+      size = p->tok->int_lit;
+      expect_and_consume(p, INT);
+      expect_and_consume(p, C_BRACKET);
+    }
+
+    *stack_offset += size;
+    VarInfo *info = var_info(p->var_info, AUTO_VAR, *stack_offset);
+    put_to_hash_set(symtab, name, info);
+
+    AstNode *node = arena_alloc(p->ast, sizeof(AstNode));
+    *node = (AstNode){.kind = AST_AUTO, .var_n = new_ast_var(p->ast, name, size)};
+    add_node(body_tail, node);
 
     if (is_kind(p, COMMA)) {
       pconsume(p);
+    } else {
+      break;
     }
-
-    AstNode *auto_n = arena_alloc(p->ast, sizeof(AstNode));
-    *auto_n = (AstNode){.kind = AST_AUTO, .name_s = var_name};
-    add_node(body_tail, auto_n);
-  } while (!is_kind(p, SEMICOLON));
+  }
 
   expect_and_consume(p, SEMICOLON);
   return NULL;
@@ -149,28 +159,30 @@ AstNode *parse_return_s(Parser *p) {
 }
 
 void parse_global_s(Parser *p, const char *name) {
-  size_t size = 1;
+  size_t size;
 
   goto first;
 
 comma:
-
   name = p->tok->lexeme;
   pconsume(p);
 
-first: {
-  VarInfo *info = var_info(p->var_info, GLOBAL_VAR, 0);
-  put_to_hash_set(p->global_table, name, info);
-}
-
+first:
+  size = 1;
   if (is_kind(p, O_BRACKET)) {
     pconsume(p);
-    size = atoi(p->tok->lexeme);
+    size = p->tok->int_lit;
+    pconsume(p);
     expect_and_consume(p, C_BRACKET);
   }
 
+  {
+    VarInfo *info = var_info(p->var_info, GLOBAL_VAR, size);
+    put_to_hash_set(p->global_table, name, info);
+  }
+
   AstNode *global_n = arena_alloc(p->ast, sizeof(AstNode));
-  *global_n = (AstNode){AST_GLOBAL, .global_n = new_ast_global(p->ast, name, size)};
+  *global_n = (AstNode){AST_GLOBAL, .var_n = new_ast_var(p->ast, name, size)};
   add_node(&p->t_node, global_n);
 
   if (is_kind(p, COMMA)) {
@@ -311,6 +323,8 @@ void parser(Parser *p) {
       } else {
         parse_global_s(p, name);
       }
+    } else if (p->tok->kind == EXTRN) {
+      parse_extrn_s(p, &p->t_node);
     } else {
       fprintf(stderr, "%s:%zu:%zu: Unexpected token `%s`.\n", p->l->file, p->tok->position.ln,
               p->tok->position.cn, token_kind_to_str(p->tok->kind));
@@ -354,17 +368,19 @@ Token *pconsume(Parser *p) {
 }
 
 void expect_and_consume(Parser *p, TokenKind kind) {
-  const Token *tok = pconsume(p);
+  const Token *tok = p->tok;
   if (tok == NULL) {
-    fprintf(stderr, "%s:%zu:%zu: Expected `%s` but got end of input\n", p->l->file, p->l->ln,
-            p->l->cn, token_kind_to_str(kind));
+    fprintf(stderr, "%s:%zu:%zu: Expected `%s` but got end of input\n", p->l->file,
+            tok->position.ln, tok->position.cn, token_kind_to_str(kind));
     return;
   }
   const TokenKind got = tok->kind;
   if (kind != got) {
-    fprintf(stderr, "%s:%zu:%zu: Expected `%s` but got `%s`\n", p->l->file, p->l->ln, p->l->cn,
-            token_kind_to_str(kind), token_kind_to_str(got));
+    fprintf(stderr, "%s:%zu:%zu: Expected `%s` but got `%s`\n", p->l->file, tok->position.ln,
+            tok->position.cn, token_kind_to_str(kind), token_kind_to_str(got));
+    return;
   }
+  pconsume(p);
 }
 
 bool is_kind(Parser *p, TokenKind kind) {

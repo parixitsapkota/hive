@@ -15,7 +15,6 @@ typedef enum {
   IDENTIFIER,
   INT,
   STRING,
-  CHARACTER,
   LABLE,
 
   // Keywords
@@ -77,6 +76,7 @@ typedef struct Token {
   // Value
   TokenKind kind;
   const char *lexeme;
+  size_t int_lit;
   // Position
   Position position;
   // Next Token
@@ -98,6 +98,9 @@ typedef struct {
   size_t i;  // index
   size_t ln; // line number
   size_t cn; // colume number
+  // String storage.
+  Arena *str_arena;
+  size_t srt_data_c;
   // Token List
   Arena *tokens;
   Token *tok_head;

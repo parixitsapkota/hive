@@ -1,3 +1,4 @@
+
 #include <ctype.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -11,15 +12,15 @@
 // Lexer helper funcions
 char peak(const Lexer *l, int offset);
 void consume(Lexer *l);
-void add_token(Lexer *l, TokenKind kind, const char *lexeme, Position position);
+void add_token(Lexer *l, TokenKind kind, const char *lexeme, size_t int_lit, Position position);
 Position position(size_t ln, size_t cn);
 // P_Print helper function
 char *token_kind_to_str(TokenKind kind);
 // Lexer core functions
-char *substr(const char *buffer, const size_t start, const size_t end);
+char *substr(Lexer *l, const char *buffer, const size_t start, const size_t end);
 char *get_word(Lexer *l);
 char *get_string_ident(Lexer *l);
-char *get_string(Lexer *l);
+char *get_string(Lexer *l, char q);
 char *get_digit(Lexer *l);
 
 Lexer *init_lexer(const char *file, const char *buffer, size_t buf_len) {
@@ -30,7 +31,9 @@ Lexer *init_lexer(const char *file, const char *buffer, size_t buf_len) {
   l->i = 0;
   l->ln = 1;
   l->cn = 1;
+  l->srt_data_c = 0;
   l->tokens = init_arena(sizeof(Token) * TOKENS_STORE);
+  l->str_arena = init_arena(sizeof(char) * (buf_len * 0.75));
   // Temp vars.
   l->t_token = NULL;
   l->tok_head = NULL;
@@ -66,10 +69,9 @@ void lexer(Lexer *l) {
 
       const struct Keyword *k = get_keyword_kind(word, word_len);
       if (k != NULL) {
-        add_token(l, k->token_kind, NULL, position(l->ln, l->t_cn));
-        free(word);
+        add_token(l, k->token_kind, word, 0, position(l->ln, l->t_cn));
       } else {
-        add_token(l, IDENTIFIER, word, position(l->ln, l->t_cn));
+        add_token(l, IDENTIFIER, word, 0, position(l->ln, l->t_cn));
       }
       continue;
     }
@@ -77,14 +79,26 @@ void lexer(Lexer *l) {
     // Handle digits.
     if (isdigit((unsigned char)c)) {
       char *num = get_digit(l);
-      add_token(l, INT, num, position(l->ln, l->t_cn));
+      char *endptr;
+      unsigned long long int_lit = strtoull(num, &endptr, 0);
+      if ((num[0] == '0') && (num[1] == 'b' || num[1] == 'B')) {
+        int_lit = strtoull(num + 2, &endptr, 2);
+      }
+      add_token(l, INT, num, (size_t)int_lit, position(l->ln, l->t_cn));
       continue;
     }
 
-    // Collect Strings
+    // Collect Str literal
     if (c == '"') {
-      char *str = get_string(l);
-      add_token(l, STRING, str, position(l->ln, l->t_cn));
+      char *str = get_string(l, '"');
+      add_token(l, STRING, str, ++(l->srt_data_c), position(l->ln, l->t_cn));
+      continue;
+    }
+
+    // Collect Char literal
+    if (c == '\'') {
+      char *str = get_string(l, '\'');
+      add_token(l, INT, str, (size_t)str[0], position(l->ln, l->t_cn));
       continue;
     }
 
@@ -172,11 +186,11 @@ void lexer(Lexer *l) {
       }
 
       if (kind == UNKNOWN) {
-        add_token(l, UNKNOWN, NULL, position(l->ln, l->t_cn));
+        add_token(l, UNKNOWN, NULL, 0, position(l->ln, l->t_cn));
         consume(l);
         continue;
       }
-      add_token(l, kind, NULL, position(l->ln, l->t_cn));
+      add_token(l, kind, NULL, 0, position(l->ln, l->t_cn));
       consume(l);
       continue;
     }
@@ -184,14 +198,8 @@ void lexer(Lexer *l) {
 }
 
 void free_lexer(Lexer *l) {
-  Token *tok = l->tok_head->next;
-  while (tok != NULL) {
-    if (tok->lexeme) {
-      free((char *)tok->lexeme);
-    }
-    tok = tok->next;
-  }
   free_arena(l->tokens);
+  free_arena(l->str_arena);
   free(l);
 }
 
@@ -203,9 +211,10 @@ void consume(Lexer *l) {
   ++l->cn;
 }
 
-void add_token(Lexer *l, TokenKind kind, const char *lexeme, Position position) {
+void add_token(Lexer *l, TokenKind kind, const char *lexeme, size_t int_lit, Position position) {
   Token *new_token = arena_alloc(l->tokens, sizeof(Token));
-  *new_token = (Token){.kind = kind, .lexeme = lexeme, .position = position, .next = NULL};
+  *new_token = (Token){
+      .kind = kind, .lexeme = lexeme, .int_lit = int_lit, .position = position, .next = NULL};
   new_token->next = NULL;
   l->t_token->next = new_token;
   l->t_token = new_token;
@@ -214,9 +223,9 @@ void add_token(Lexer *l, TokenKind kind, const char *lexeme, Position position) 
 Position position(size_t ln, size_t cn) { return (Position){.ln = ln, .cn = cn}; }
 
 // Lexer core functions
-char *substr(const char *buffer, const size_t start, const size_t end) {
+char *substr(Lexer *l, const char *buffer, const size_t start, const size_t end) {
   const size_t length = end - start;
-  char *substr = malloc(length + 1);
+  char *substr = arena_alloc(l->str_arena, length + 1);
   strncpy(substr, buffer + start, length);
   substr[length] = '\0';
   return substr;
@@ -227,32 +236,114 @@ char *get_word(Lexer *l) {
   while (isalnum(peak(l, 0)) || peak(l, 0) == '_') {
     consume(l);
   }
-  return substr(l->buffer, start, l->i);
+  return substr(l, l->buffer, start, l->i);
 }
 
-char *get_string(Lexer *l) {
-  consume(l); // Skip first char.
+char *get_string(Lexer *l, char q) {
+  consume(l); // Consume opening " / '
   const size_t start = l->i;
 
-  while (peak(l, 0) != '"') {
-    if (peak(l, 0) == '\0' || peak(l, 0) == '\n') {
-      fprintf(stderr, "%s:%zu:%zu: Unterminated string.", l->file, l->ln, l->t_cn);
+  while (peak(l, 0) != q) {
+    char c = peak(l, 0);
+    if (c == '\0' || c == '\n') {
+      fprintf(stderr, "%s:%zu:%zu: Unterminated quoted constant literal.\n", l->file, l->ln,
+              l->t_cn);
       exit(EXIT_FAILURE);
+    }
+    if (c == '*') {
+      consume(l); // Consume prefix '*'
+      c = peak(l, 0);
+      if (c == '\0' || c == '\n') {
+        fprintf(stderr, "%s:%zu:%zu: Unterminated quoted constant after escape.\n", l->file,
+                l->ln, l->t_cn);
+        exit(EXIT_FAILURE);
+      }
     }
     consume(l);
   }
-  if (peak(l, 0) == '"') {
-    consume(l); // Skip last char.
+
+  char *string = substr(l, l->buffer, start, l->i);
+  consume(l); // Consume closing " / '
+
+  size_t strlen = l->i - start;
+  size_t r = 0, w = 0;
+  while (r < strlen) {
+    if (string[r] == '*') {
+      r++;
+      switch (string[r]) {
+      case '0': string[w++] = '\0'; break;
+      case 'e': string[w++] = 0x04; break;
+      case '(': string[w++] = '{'; break;
+      case ')': string[w++] = '}'; break;
+      case 't': string[w++] = '\t'; break;
+      case '"': string[w++] = '\"'; break;
+      case 'n': string[w++] = '\n'; break;
+      case '*': string[w++] = '*'; break;
+      case '\'': string[w++] = '\''; break;
+      default:
+        fprintf(stderr, "%s:%zu:%zu: Unknown escape sequence `*%c`\n", l->file, l->ln, l->t_cn,
+                string[r]);
+        exit(EXIT_FAILURE);
+      }
+    } else {
+      string[w++] = string[r];
+    }
+    r++;
   }
-  return substr(l->buffer, start, l->i - 1);
+
+  if (q == '\'' && w - 1 > 1) {
+    fprintf(stderr, "%s:%zu:%zu: Character constant too long.\n", l->file, l->ln, l->t_cn);
+  }
+
+  string[w] = '\0';
+  return string;
+}
+
+bool isoctal(char c) {
+  if ((c >= 0x30 && c <= 0x37)) {
+    return true;
+  }
+  return false;
 }
 
 char *get_digit(Lexer *l) {
   const size_t start = l->i;
+
+  if (peak(l, 0) == '0') {
+    char next = peak(l, 1);
+    consume(l);
+
+    if (next == 'x' || next == 'X') {
+      consume(l);
+      while (isxdigit(peak(l, 0))) {
+        consume(l);
+      }
+      return substr(l, l->buffer, start, l->i);
+    }
+
+    if (next == 'b' || next == 'B') {
+      consume(l);
+      while (peak(l, 0) == '0' || peak(l, 0) == '1') {
+        consume(l);
+      }
+      return substr(l, l->buffer, start, l->i);
+    }
+
+    while (isdigit(peak(l, 0))) {
+      char c = peak(l, 0);
+      if (!isoctal(c)) {
+        fprintf(stderr, "%s:%zu:%zu: Invalid digit '%c' in octal constant.\n", l->file, l->ln,
+                l->t_cn, c);
+      }
+      consume(l);
+    }
+    return substr(l, l->buffer, start, l->i);
+  }
+
   while (isdigit(peak(l, 0))) {
     consume(l);
   }
-  return substr(l->buffer, start, l->i);
+  return substr(l, l->buffer, start, l->i);
 }
 
 char *token_kind_to_str(TokenKind kind) {
@@ -262,7 +353,6 @@ char *token_kind_to_str(TokenKind kind) {
   case IDENTIFIER: return "IDENTIFIER";
   case INT: return "INT";
   case STRING: return "STRING";
-  case CHARACTER: return "CHARACTER";
   case LABLE: return "LABLE";
   case EXTRN: return "EXTRN";
   case AUTO: return "AUTO";

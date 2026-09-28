@@ -1,4 +1,5 @@
 #include "dep/shi_arena.h"
+#include <stddef.h>
 
 #include "ast.h"
 
@@ -8,9 +9,9 @@ VarInfo *var_info(Arena *arena, VarKind kind, size_t offset) {
   return var;
 }
 
-AstAtom *new_ast_atom(Arena *arena, TokenKind kind, const char *value) {
+AstAtom *new_ast_atom(Arena *arena, TokenKind kind, const char *value, size_t int_lit) {
   AstAtom *atom = arena_alloc(arena, sizeof(AstAtom));
-  *atom = (AstAtom){.kind = kind, .value = value};
+  *atom = (AstAtom){.kind = kind, .value = value, .int_lit = int_lit};
   return atom;
 }
 
@@ -56,8 +57,8 @@ AstIf *new_ast_conditional(Arena *arena, AstNode *Condition, AstNode *body, AstN
   return if_n;
 }
 
-AstGlobal *new_ast_global(Arena *arena, const char *name, size_t size) {
-  AstGlobal *global_n = arena_alloc(arena, sizeof(AstGlobal));
-  *global_n = (AstGlobal){.name = name, .size = size};
+AstVar *new_ast_var(Arena *arena, const char *name, size_t size) {
+  AstVar *global_n = arena_alloc(arena, sizeof(AstVar));
+  *global_n = (AstVar){.name = name, .size = size};
   return global_n;
 }

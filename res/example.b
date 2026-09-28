@@ -14,42 +14,42 @@
 */
 
 printf(fmt, x1, x2, x3, x4, x5, x6, x7, x8, x9) {
-  extrn char, putchar;
-  auto adx, x, c, i, j;
+    extrn char, putchar;
+    auto adx, x, c, i, j;
 
-  i = 0;     /* fmt index */
-  adx = &x1; /* argument pointer */
-  
-  loop:
-  while((c=char(fmt,i++) ) != `%') {
-    if(c == `*e')
-  	  return;
-    putchar(c);
-  }
+    i = 0;     /* fmt index */
+    adx = &x1; /* argument pointer */
 
-  x = *adx++;
-  switch c = char(fmt, i++) {
-    case `d': /* decimal */
-    case `o': /* octal */
-    		if(x < O) {
-    			x = -x ;
-    			putchar('-');
-    		}
-    		printn(x, c=='o'?8:1O);
+    loop:
+    while((c=char(fmt,i++) ) != '%') {
+      if(c == '*e')
+          return;
+      putchar(c);
+    }
+
+    x = *adx++;
+    switch c = char(fmt, i++) {
+    case 'd': /* decimal */
+    case 'o': /* octal */
+        if(x < O) {
+            x = -x ;
+            putchar('-');
+        }
+        printn(x, c=='o'?8:1O);
         goto loop;
 
     case 'c': /* char */
-      putchar(x); goto loop;
+        putchar(x); goto loop;
 
-	  case 's': /* string */
-      while(c=char(x, j++) != '*e')
-        putchar(c);
-      goto loop;
+	case 's': /* string */
+        while(c=char(x, j++) != '*e')
+            putchar(c);
+        goto loop;
     }
-  putchar('%');
-  i--;
-  adx--;
-  goto loop;
+    putchar('%');
+    i--;
+    adx--;
+    goto loop;
 }
 
 /*
@@ -60,12 +60,12 @@ printf(fmt, x1, x2, x3, x4, x5, x6, x7, x8, x9) {
  */
 
 printn(n, b) {
-  extrn putchar;
-  auto a;
-  if (a = n / b) { /* assignment, not test for equality */
-    printn(a, b);  /* recursive */
-  }
-  putchar(n % b + '0');
+    extrn putchar;
+    auto a;
+    if (a = n / b) { /* assignment, not test for equality */
+        printn(a, b);  /* recursive */
+    }
+    putchar(n % b + '0');
 }
 
 /*
@@ -78,29 +78,29 @@ printn(n, b) {
  */
 
 main() {
-  extrn n, v;
-  auto i, c, col, a;
+    extrn n, v;
+    auto i, c, col, a;
 
-  i = col = 0;
-  while (i < n) {
-    v[i++] = 1;
-  }
-
-  while (col < 2 * n) {
-    a = n + 1;
-    c = i = 0;
+    i = col = 0;
     while (i < n) {
-      c = +v[i] * 10;
-      v[i++] = c % a;
-      c = / a--;
+        v[i++] = 1;
     }
+
+    while (col < 2 * n) {
+      a = n + 1;
+      c = i = 0;
+      while (i < n) {
+        c = +v[i] * 10;
+        v[i++] = c % a;
+        c = / a--;
+      }
 
     putchar(c + '0');
     if (!(++col % 5)) {
-      putchar(col % 50 ? ' ' : '*n');
+        putchar(col % 50 ? ' ' : '*n');
     }
-  }
-  putchar('*n*n');
+    }
+    putchar('*n*n');
 }
 
 v[2000];

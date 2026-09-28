@@ -15,3 +15,4 @@ trident
 # Project generated
 *.out
 *.bin
+lib/

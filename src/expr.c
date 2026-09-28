@@ -11,7 +11,6 @@ bool is_kind_literal(TokenKind kind) {
   switch (kind) {
   case INT:
   case STRING:
-  case CHARACTER:
   case IDENTIFIER: return true;
   default: return false;
   }
@@ -65,6 +64,7 @@ Precedence get_op_prec(TokenKind kind) {
 
   case COMMA:
   case C_PREN:
+  case C_BRACKET:
   case SEMICOLON: return PREC_NONE;
 
   default: return PREC_UNKNOWN;
@@ -73,7 +73,7 @@ Precedence get_op_prec(TokenKind kind) {
 
 AstAtom *parse_atom_f(Parser *p) {
   Token *tok = pconsume(p);
-  return new_ast_atom(p->ast, tok->kind, tok->lexeme);
+  return new_ast_atom(p->ast, tok->kind, tok->lexeme, tok->int_lit);
 }
 
 AstFunctionCall *parse_function_call_s(Parser *p) {
@@ -132,6 +132,31 @@ AstNode *parse_left_f(Parser *p) {
   }
 
   *left = (AstNode){AST_ATOM, .atom_n = parse_atom_f(p)};
+
+  if (curr(p)->kind == O_BRACKET) {
+    pconsume(p);
+    AstNode *index_expr = parse_expr_f(p, PREC_NONE);
+    expect_and_consume(p, C_BRACKET);
+
+    AstNode *left_address = arena_alloc(p->ast, sizeof(AstNode));
+    *left_address = (AstNode){.kind = AST_UNARY, .unary_n = new_ast_unary(p->ast, left, BIT_AND)};
+
+    AstNode *eight = arena_alloc(p->ast, sizeof(AstNode));
+    *eight = (AstNode){.kind = AST_ATOM, .atom_n = new_ast_atom(p->ast, INT, NULL, 8)};
+
+    AstNode *index = arena_alloc(p->ast, sizeof(AstNode));
+    *index =
+        (AstNode){.kind = AST_BINARY, .binary_n = new_ast_binary(p->ast, index_expr, MUL, eight)};
+
+    AstNode *address = arena_alloc(p->ast, sizeof(AstNode));
+    *address = (AstNode){.kind = AST_BINARY,
+                         .binary_n = new_ast_binary(p->ast, index, ADD, left_address)};
+
+    AstNode *ret = arena_alloc(p->ast, sizeof(AstNode));
+    *ret = (AstNode){.kind = AST_UNARY, .unary_n = new_ast_unary(p->ast, address, MUL)};
+    left = ret;
+  }
+
   return left;
 }
 
