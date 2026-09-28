@@ -262,7 +262,7 @@ void dump_x86_64_nasm(Ir *ir, FILE *f) {
 
   for (Token *tok = ir->p->l->tok_head->next; tok != NULL; tok = tok->next) {
     if (tok->kind == STRING) {
-      fprintf(f, "__ro_data_%zu: db ", tok->int_lit);
+      fprintf(f, "__ro_data_%zu: dq ", tok->int_lit);
       size_t len = strlen(tok->lexeme);
       for (size_t i = 0; i <= len; ++i) {
         fprintf(f, "0x%02x", (unsigned char)tok->lexeme[i]);

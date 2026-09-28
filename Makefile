@@ -177,6 +177,6 @@ run:
 		nasm -f elf64 "examples/$$name.asm" -o "examples/$$name.o" || exit 1; \
 		printf "$(COLOR_YELLOW)[#] Linking examples/$$name.o...$(COLOR_RESET)\n"; \
 		ld -o "examples/$$name.bin" "examples/$$name.o" "lib/libb.o" "lib/brt.o" || exit 1; \
-		./examples/$$name.bin; status=$$?; \
-		printf "$(COLOR_BLUE)[+] $$name.b : Exit-code : $(COLOR_RED)%d$(COLOR_RESET)\n\n" $$status; \
+		./examples/$$name.bin; \
+		printf "\n"; \
 	done

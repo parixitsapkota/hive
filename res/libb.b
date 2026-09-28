@@ -1,7 +1,7 @@
 extrn syscall;
 
 char(string, i) {
-    return *(string + i);
+    return *(string + i * 8);
 }
 
 putchar(char) {
