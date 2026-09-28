@@ -36,7 +36,7 @@ To run example:
 make run EXAMPLE=res/example.b
 ```
 
-> **TODO:** Add better errors and pass by refrence.
+> **TODO:** Add better errors and syntax suger (like =+, =-, =* ....).
 
 > **Note:** If you modify `res/keywords.gperf`, regenerate the header file before building:  
 > `gperf -N get_keyword_kind -t res/keywords.gperf > src/keywords.h`
