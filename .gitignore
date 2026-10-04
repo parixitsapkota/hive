@@ -9,7 +9,7 @@ src/dep/
 
 # Build generated
 build/
-trident
+hive
 *.exe
 
 # Project generated

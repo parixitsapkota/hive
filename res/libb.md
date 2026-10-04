@@ -184,9 +184,9 @@ From : [Users' Reference to B](https://www.nokia.com/bell-labs/about/dennis-m-ri
 
 ---
 
-# libtb (trident-b functions)
+# libtb (hive-b functions)
 
-The following is a list of functions in the Trident-B-library.
+The following is a list of functions in the Hive-B-library.
 
 ## Mem
 

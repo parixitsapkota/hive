@@ -7,12 +7,12 @@ COLOR_BLUE    := \033[1;34m
 COLOR_MAGENTA := \033[1;35m
 
 # --- Configuration ---
-PROJECT := trident
+PROJECT := hive
 CC      = clang
 
 DEBUG   := -fsanitize=address -g -O0
 RELEASE := -O3
-CFLAGS  := -Isrc -Wall -Wextra -Werror
+CFLAGS  := -Wall -Wextra -Werror
 LDFLAGS :=
 
 # --- paths ---

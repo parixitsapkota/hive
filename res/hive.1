@@ -1,16 +1,16 @@
-.\" Process this file with groff -mman -Tascii trident.1
-.TH TRIDENT 1 "September 2026" "Trident Compiler" "User Commands"
+.\" Process this file with groff -mman -Tascii hive.1
+.TH HIVE 1 "September 2026" "Hive Compiler" "User Commands"
 .SH NAME
-trident \- compiler for the B programming language targeting amd64 assembly
+hive \- compiler for the B programming language targeting amd64 assembly
 .SH SYNOPSIS
-.B trident
+.B hive
 [\fB\-h\fR|\fB\-help\fR]
 [\fB\-v\fR|\fB\-version\fR]
 .BR \-i " \fIinput_file\fR"
 [\fB\-o\fR " \fIoutput_file\fR"]
 [\fB\-t\fR " \fItarget\fR"]
 .SH DESCRIPTION
-.B Trident
+.B Hive
 is a compiler for the \fBB programming language\fR, targeting \fBamd64\fR assembly output by default.
 \fBB\fR is a typeless systems programming language originally developed by Ken Thompson and Dennis Ritchie at Bell Labs, serving as the direct predecessor to C.
 .PP
@@ -32,7 +32,7 @@ Specify the output assembly file path. Defaults to \fBout.asm\fR if unspecified.
 .BI \-t " target" ", " \-target " target"
 Specify the output target backend. Defaults to \fBx86_64_nasm\fR if unspecified.
 .SH ENVIRONMENT & COMPLIANCE
-.B Trident
+.B Hive
 is primarily designed and supported on \fBLinux\fR. Support for other platforms (e.g., Windows via \fBw64-mingw32\fR) is experimental.
 .SH EXIT STATUS
 .TP
@@ -45,11 +45,11 @@ An error occurred during execution (e.g., missing input file, invalid options, f
 .PP
 Compile a B program \fBmain.b\fR to the default output file (\fBout.asm\fR):
 .IP
-.B trident -i main.b
+.B hive -i main.b
 .PP
 Compile \fBexample.b\fR with a specific target into custom assembly output \fBbuild/example.s\fR:
 .IP
-.B trident -i example.b -o build/example.s -t x86_64_nasm
+.B hive -i example.b -o build/example.s -t x86_64_nasm
 .PP
 Assemble and run using the project \fBMakefile\fR:
 .IP
