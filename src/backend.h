@@ -4,9 +4,9 @@
 #include "ir.h"
 
 typedef enum {
-  UNKNOWN_TARGET,
-  X86_64_NASM,
-  IR_TARGET,
+    UNKNOWN_TARGET,
+    X86_64_NASM,
+    IR_TARGET,
 } Targets;
 
 Targets target_string_to_kind(const char *file_path);

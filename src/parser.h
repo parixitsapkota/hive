@@ -8,20 +8,20 @@
 
 // Parser Structure
 typedef struct {
-  Lexer *l;
-  // Position
-  size_t i; // index
-  // Ast store
-  Arena *ast;
-  Arena *var_info;
-  AstNode *ast_head;
-  AstScope *global_scope_n;
-  Hs *global_table;
-  Hs *functions_table;
-  // Helper/Temp vars
-  Hs *t_lable_tab;
-  Token *tok;
-  AstNode *t_node;
+    Lexer *l;
+    // Position
+    size_t i; // index
+    // Ast store
+    Arena *ast;
+    Arena *var_info;
+    AstNode *ast_head;
+    AstScope *global_scope_n;
+    Hs *global_table;
+    Hs *functions_table;
+    // Helper/Temp vars
+    Hs *t_lable_tab;
+    Token *tok;
+    AstNode *t_node;
 } Parser;
 
 /// Returns a parser context based on given lexing context.
@@ -32,17 +32,17 @@ void parser(Parser *p);
 void free_parser(Parser *p);
 
 typedef enum {
-  PREC_UNKNOWN = -1,
-  PREC_NONE = 0,
-  PREC_ASSIGNMENT,
-  PREC_CONDITIONAL,
-  PREC_BIT_OR,
-  PREC_BIT_AND,
-  PREC_RELATIONAL,
-  PREC_EQUALITY,
-  PREC_BITSHIFT,
-  PREC_ADDITIVE,
-  PREC_MULTIPLICATIVE,
+    PREC_UNKNOWN = -1,
+    PREC_NONE = 0,
+    PREC_ASSIGNMENT,
+    PREC_CONDITIONAL,
+    PREC_BIT_OR,
+    PREC_BIT_AND,
+    PREC_RELATIONAL,
+    PREC_EQUALITY,
+    PREC_BITSHIFT,
+    PREC_ADDITIVE,
+    PREC_MULTIPLICATIVE,
 } Precedence;
 
 Token *ppeak(const Parser *p);

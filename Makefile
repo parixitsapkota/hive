@@ -6,29 +6,39 @@ COLOR_YELLOW  := \033[1;33m
 COLOR_BLUE    := \033[1;34m
 COLOR_MAGENTA := \033[1;35m
 
+export COLOR_RESET COLOR_RED COLOR_GREEN COLOR_YELLOW COLOR_BLUE
+
+# --- paths ---
+ROOT_DIR  := $(shell pwd)
+PREFIX    := /usr/local
+MANPREFIX := ${PREFIX}/share/man
+
 # --- Configuration ---
 PROJECT := hive
 CC      = clang
-
+MAKEFLAGS += --no-print-directory
 DEBUG   := -fsanitize=address -g -O0
 RELEASE := -O3
 CFLAGS  := -Wall -Wextra -Werror
 LDFLAGS :=
 
-# --- paths ---
-PREFIX    := /usr/local
-MANPREFIX := ${PREFIX}/share/man
+export PROJECT CC DEBUG RELEASE CFLAGS LDFLAGS
 
+# --- build mode ---
 MODE    ?= debug
-BUILD   ?=
+BUILD_PATH   ?=
 
 ifeq ($(MODE),release)
   CFLAGS += $(RELEASE)
-  BUILD  := build/release
+  BUILD_PATH  := build/release
 else
   CFLAGS += $(DEBUG)
-  BUILD  := build/debug
+  BUILD_PATH  := build/debug
 endif
+
+BUILD := $(ROOT_DIR)/$(BUILD_PATH)
+
+export MODE BUILD
 
 # --- Information ---
 GIT_TAG       := $(shell git describe --tags --abbrev=0 2>/dev/null || echo "0.0.1")
@@ -65,70 +75,20 @@ else ifeq ($(PLATFORM),windows)
 	OUTPUT = $(PROJECT).exe
 endif
 
-C_SOURCES := $(wildcard src/*.c)
-H_HEADERS := $(wildcard src/*.h)
-SRCFILES  := $(C_SOURCES) $(H_HEADERS)
+export OUTPUT
 
-OBJECTS := $(patsubst src/%.c, $(BUILD)/%.o, $(C_SOURCES))
-
-SHI_SRC   := shi_arena.h shi_hs.h shi_flags.h shi_file.h
-SHI_FILES := $(patsubst %.h, src/dep/%.h, $(SHI_SRC))
-
-.PHONY: all clean dependency format
-
-.DELETE_ON_ERROR:
-
-all: format dependency $(OUTPUT)
-
-dependency: $(SHI_FILES) src/dep/keywords.h
-
-$(SHI_FILES):
-
-src/dep/keywords.h: res/keywords.gperf
-	@mkdir -p $(dir $@)
-	@printf "$(COLOR_MAGENTA)[+] Creating $@...$(COLOR_RESET)\n"
-	@gperf -N get_keyword_kind -t $< > $@
-
-# rule to download missing SHI headers
-src/dep/%.h:
-	@mkdir -p $(dir $@)
-	@printf "$(COLOR_MAGENTA)[+] Downloading $@...$(COLOR_RESET)\n"
-	@wget -q https://raw.githubusercontent.com/parixitsapkota/SHI/refs/heads/main/$(notdir $@) -O $@ || (rm -f $@ && exit 1)
-
-# Link the main exe
-$(OUTPUT): $(OBJECTS)
-	@echo -e "$(COLOR_YELLOW)[#] Linking $(OUTPUT) $(COLOR_BLUE)$(MODE)$(COLOR_YELLOW) mode...$(COLOR_RESET)"
-	@$(CC) $(CFLAGS) $(OBJECTS) -o $(OUTPUT)
-
-$(OBJECTS):
-
-# Compile sourcefile
-$(BUILD)/%.o: src/%.c
-	@mkdir -p $(dir $@)
-	@echo -e "$(COLOR_GREEN)[+] Compiling $<...$(COLOR_RESET)"
-	@$(CC) $(CFLAGS) -c $< -o $@
+all:
+	@$(MAKE) -C src
+	@$(MAKE) -C libb
 
 # Clean build artifact
-clean: clean_build
-
-clean_all: clean_build clean_examples clean_deps
-
-clean_build:
+clean:
 	@echo -e "$(COLOR_BLUE)[-] Cleaning build artifacts...$(COLOR_RESET)"
 	@rm -rf build/ $(PROJECT) $(PROJECT).exe
 
-clean_examples:
+CLEAN: clean
 	@echo -e "$(COLOR_BLUE)[-] Cleaning examples artifacts...$(COLOR_RESET)"
 	@rm -rf examples/*.o examples/*.asm examples/*.bin
-
-clean_deps:
-	@echo -e "$(COLOR_BLUE)[-] Cleaning dependencies...$(COLOR_RESET)"
-	@rm -rf src/dep/
-
-# Format sourcefile
-format:
-	@echo -e "$(COLOR_BLUE)[-] Formatting source files...$(COLOR_RESET)"
-	@clang-format -i $(SRCFILES)
 
 # Install
 install: clean all
@@ -146,37 +106,4 @@ uninstall:
 	@rm -f $(MANPREFIX)/man1/$(OUTPUT).1
 	@rm -f $(PREFIX)/bin/$(OUTPUT)
 
-info:
-	@echo $(PROJECT) $(VERSION)
-	@echo "Compiler : $(COMPILER_INFO)"
-	@echo "Built    : $(TIME_INFO)"
-
-EXAMPLE ?= $(wildcard examples/*.b)
-
-run:
-	@printf "\n\n"
-	@./$(OUTPUT) -v
-	@printf "\n\n"
-	@mkdir -p lib/ examples/
-
-	@./$(OUTPUT) -i "res/brt.b" -o "lib/brt.asm"
-	@nasm -f elf64 "lib/brt.asm" -o "lib/brt1.o"
-	@nasm -f elf64 "res/brt.asm" -o "lib/brt0.o"
-	@ld -r "lib/brt0.o" "lib/brt1.o" -o "lib/brt.o"
-
-	@./$(OUTPUT) -i "res/libb.b" -o "lib/libb.asm"
-	@nasm -f elf64 "lib/libb.asm" -o "lib/libb1.o"
-	@nasm -f elf64 "res/libb.asm" -o "lib/libb0.o"
-	@ld -r "lib/libb0.o" "lib/libb1.o" -o "lib/libb.o"
-
-	@for file in $(EXAMPLE); do \
-		name=$$(basename "$$file" .b); \
-		printf "$(COLOR_MAGENTA)[+] Compiling $$file...$(COLOR_RESET)\n"; \
-		./$(OUTPUT) -i "$$file" -o "examples/$$name.asm" || exit 1; \
-		printf "$(COLOR_GREEN)[+] Assembling examples/$$name.asm...$(COLOR_RESET)\n"; \
-		nasm -f elf64 "examples/$$name.asm" -o "examples/$$name.o" || exit 1; \
-		printf "$(COLOR_YELLOW)[#] Linking examples/$$name.o...$(COLOR_RESET)\n"; \
-		ld -o "examples/$$name.bin" "examples/$$name.o" "lib/libb.o" "lib/brt.o" || exit 1; \
-		./examples/$$name.bin; \
-		printf "\n"; \
-	done
+.PHONY: all clean CLEAN

@@ -11,112 +11,112 @@
 typedef struct AstNode AstNode;
 
 typedef struct {
-  TokenKind kind;
-  const char *value;
-  size_t int_lit;
+    TokenKind kind;
+    const char *value;
+    size_t int_lit;
 } AstAtom;
 
 typedef struct {
-  AstNode *node;
-  TokenKind op;
+    AstNode *node;
+    TokenKind op;
 } AstUnary;
 
 typedef struct {
-  AstNode *left;
-  TokenKind op;
-  AstNode *right;
+    AstNode *left;
+    TokenKind op;
+    AstNode *right;
 } AstBinary;
 
 typedef struct AstScope AstScope;
 struct AstScope {
-  Hs *symtab;
-  AstScope *parent;
-  AstNode *body;
+    Hs *symtab;
+    AstScope *parent;
+    AstNode *body;
 };
 
 typedef struct {
-  const char *name;
-  AstNode *body;
-  Hs *params_tab;
-  Hs *lable_tab;
-  size_t params;
+    const char *name;
+    AstNode *body;
+    Hs *params_tab;
+    Hs *lable_tab;
+    size_t params;
 } AstFunction;
 
 typedef struct {
-  const char *name;
-  AstNode *args;
-  size_t argc;
+    const char *name;
+    AstNode *args;
+    size_t argc;
 } AstFunctionCall;
 
 typedef struct {
-  AstNode *Condition;
-  AstNode *body;
-  AstNode *chain;
+    AstNode *Condition;
+    AstNode *body;
+    AstNode *chain;
 } AstIf;
 
 typedef struct {
-  AstNode *Condition;
-  AstNode *body;
+    AstNode *Condition;
+    AstNode *body;
 } AstWhile;
 
 typedef struct {
-  const char *name;
-  size_t size;
+    const char *name;
+    size_t size;
 } AstVar;
 
 typedef enum {
-  AST_ATOM,
-  AST_UNARY,
-  AST_BINARY,
-  AST_EXPR,
-  AST_SCOPE,
-  AST_FUNCTION,
-  AST_FUNCTION_CALL,
-  AST_EXTRN,
-  AST_AUTO,
-  AST_IF,
-  AST_ELSE_IF,
-  AST_ELSE,
-  AST_WHILE,
-  AST_RETURN,
-  AST_LABLE,
-  AST_GOTO,
-  AST_GLOBAL,
+    AST_ATOM,
+    AST_UNARY,
+    AST_BINARY,
+    AST_EXPR,
+    AST_SCOPE,
+    AST_FUNCTION,
+    AST_FUNCTION_CALL,
+    AST_EXTRN,
+    AST_AUTO,
+    AST_IF,
+    AST_ELSE_IF,
+    AST_ELSE,
+    AST_WHILE,
+    AST_RETURN,
+    AST_LABLE,
+    AST_GOTO,
+    AST_GLOBAL,
 } AstKind;
 
 struct AstNode {
-  AstKind kind;
-  // Token Type_union.
-  union {
-    AstAtom *atom_n;
-    AstUnary *unary_n;
-    AstBinary *binary_n;
-    AstScope *scope_n;
-    AstFunction *function_n;
-    AstFunctionCall *function_call_n;
-    AstIf *if_n;
-    AstWhile *while_n;
-    AstVar *var_n;
-    AstNode *node;
-    const char *name_s;
-  };
-  // Position
-  Position position;
-  // for Compound/If statements.
-  AstNode *next;
+    AstKind kind;
+    // Token Type_union.
+    union {
+        AstAtom *atom_n;
+        AstUnary *unary_n;
+        AstBinary *binary_n;
+        AstScope *scope_n;
+        AstFunction *function_n;
+        AstFunctionCall *function_call_n;
+        AstIf *if_n;
+        AstWhile *while_n;
+        AstVar *var_n;
+        AstNode *node;
+        const char *name_s;
+    };
+    // Position
+    Position position;
+    // for Compound/If statements.
+    AstNode *next;
 };
 
 typedef enum {
-  AUTO_VAR,
-  GLOBAL_VAR,
-  PARAM_VAR,
-  LABLE_S,
+    AUTO_VAR,
+    GLOBAL_VAR,
+    PARAM_VAR,
+    LABLE_S,
 } VarKind;
 
 typedef struct {
-  VarKind kind;
-  size_t offset;
-  size_t temp_dest;
+    VarKind kind;
+    size_t offset;
+    size_t temp_dest;
 } VarInfo;
 
 VarInfo *var_info(Arena *arena, VarKind kind, size_t offset);
