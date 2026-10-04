@@ -1,5 +1,5 @@
-#ifndef _TRIDENT_LEXER_H_
-#define _TRIDENT_LEXER_H_
+#ifndef HIVE_LEXER_H
+#define HIVE_LEXER_H
 
 #include <stddef.h>
 
@@ -7,62 +7,18 @@
 
 // Token Kinds
 typedef enum {
+
+#define TOKEN(tok) tok,
+#define KEYWORDS(tok, name) tok,
+#define PUNCTUATION(tok, name) tok,
+#include "token.def"
+#undef TOKEN
+#undef KEYWORDS
+#undef PUNCTUATION
+
     // Misc Tokens
-    UNKNOWN = 0,
+    UNKNOWN_TOKEN = 0,
     END_OF_TOKEN,
-
-    // Identifier & Literals
-    IDENTIFIER,
-    INT,
-    STRING,
-    LABLE,
-
-    // Keywords
-    EXTRN,
-    AUTO,
-    IF,
-    ELSE,
-    WHILE,
-    GOTO,
-    RETURN,
-
-    // Seperator
-    O_BRACE,   // `{`
-    C_BRACE,   // `}`
-    O_PREN,    // `(`
-    C_PREN,    // `)`
-    O_BRACKET, // `[`
-    C_BRACKET, // `]`
-    SEMICOLON, // `;`
-    COLON,     // `:`
-    Q_MARK,    // `?`
-
-    // Operator
-    COMMA, // `,`
-    NOT,   // `!`
-    ADD,   // `+`
-    SUB,   // `-`
-    MUL,   // `*`
-    DEV,   // `/`
-    MOD,   // `%`
-
-    BIT_AND, // `&`
-    BIT_OR,  // `|`
-
-    BITSHIFT_L, // `<<`
-    BITSHIFT_R, // `>>`
-
-    EQUAL,         // `==`
-    NOT_EQUAL,     // `!=`
-    GREATER,       // `>`
-    GREATER_EQUAL, // `>=`
-    LESSER,        // `<`
-    LESSER_EQUAL,  // `<=`
-
-    ASSIGN, // `=`
-
-    INC, // `++`
-    DEC, // `--`
 } TokenKind;
 
 typedef struct {
@@ -118,4 +74,4 @@ void lexer(Lexer *l);
 /// Frees the allocated memory in the lexing context.
 void free_lexer(Lexer *l);
 
-#endif // _TRIDENT_LEXER_H_
+#endif // HIVE_LEXER_H

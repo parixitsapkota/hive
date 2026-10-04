@@ -1,5 +1,5 @@
-#ifndef _TRIDENT_AST_H_
-#define _TRIDENT_AST_H_
+#ifndef HIVE_AST_H
+#define HIVE_AST_H
 
 #include <stddef.h>
 
@@ -132,4 +132,4 @@ AstFunctionCall *new_ast_function_call(Arena *arena, const char *name, AstNode *
 AstIf *new_ast_conditional(Arena *arena, AstNode *Condition, AstNode *body, AstNode *chain);
 AstVar *new_ast_var(Arena *arena, const char *name, size_t size);
 
-#endif // _TRIDENT_AST_H_
+#endif // HIVE_AST_H

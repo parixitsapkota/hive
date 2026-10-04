@@ -1,5 +1,5 @@
-#ifndef _TRIDENT_INFO_H_
-#define _TRIDENT_INFO_H_
+#ifndef HIVE_INFO_H
+#define HIVE_INFO_H
 
 #ifndef VERSION_INFO
 #define VERSION_INFO ""
@@ -59,4 +59,4 @@
 #define BGB_CYAN "\033[106m"
 #define BGB_WHITE "\033[107m"
 
-#endif // _TRIDENT_INFO_H_
+#endif // HIVE_INFO_H

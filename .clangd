@@ -1,0 +1,25 @@
+CompileFlags:
+  Add:
+    - "-Wall"
+    - "-Wextra"
+    - "-std=c17"
+    - "-I./src/"
+  Compiler: clang
+  CompilationDatabase: "build"
+
+Diagnostics:
+  ClangTidy:
+    Add:
+      - "bugprone-*"
+      - "performance-*"
+      - "readability-*"
+    Remove:
+      - "readability-identifier-length"
+      - "readability-implicit-bool-conversion"
+      - "readability-isolate-declaration"
+      - "readability-magic-numbers"
+
+InlayHints:
+  Enabled: Yes
+  ParameterNames: Yes
+  DeducedTypes: Yes

@@ -1,5 +1,5 @@
-#ifndef _TRIDENT_IR_H_
-#define _TRIDENT_IR_H_
+#ifndef HIVE_IR_H
+#define HIVE_IR_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -105,4 +105,4 @@ IrNode *new_ir_named(Arena *arena, IrKind kind, const char *name, size_t dest);
 IrNode *new_ir_labled(Arena *arena, IrKind kind, size_t id, size_t id_f, size_t dest);
 void add_ir_node(IrNode **t_node, IrNode *node);
 
-#endif // _TRIDENT_IR_H_
+#endif // HIVE_IR_H

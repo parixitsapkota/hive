@@ -37,8 +37,6 @@ typedef struct {
     atomic_bool failed;
 } Pool;
 
-/* ---- lifecycle ---- */
-
 static void job_free(Job *job) {
     if (job->have_tmp && job->keep_temps) {
         fprintf(stderr, "%s : intermediate files kept in %s\n", diag_prog(), job->tmp_dir);
@@ -71,14 +69,10 @@ static bool job_init(Job *job, const JobSpec *spec) {
     return diag_error("out of memory");
 }
 
-/* ---- validation ---- */
-
-/* "/x/y/main.tri" -> "main" */
 static bool get_stem(const char *path, char *stem, size_t n) {
     return path_filename_copy(path, stem, n) && tri_strip_extension(stem, stem, n);
 }
 
-/* Every input must be <name>.tri. Reports all bad files, not just the first. */
 static bool validate_inputs(Job *job) {
     bool ok = true;
     for (size_t i = 0; i < job->n; i++) {
@@ -92,7 +86,6 @@ static bool validate_inputs(Job *job) {
     return ok;
 }
 
-/* True (after printing why) if a later input has the same stem as input i. */
 static bool has_duplicate_output(const Job *job, size_t i) {
     for (size_t j = i + 1; j < job->n; j++) {
         if (strcmp(job->stems[i], job->stems[j]) != 0) {
@@ -105,7 +98,6 @@ static bool has_duplicate_output(const Job *job, size_t i) {
     return false;
 }
 
-/* With -c each input becomes ./<stem>.o, so two inputs must not share a stem. */
 static bool check_unique_outputs(const Job *job) {
     if (!job->compile_only) {
         return true;
@@ -118,10 +110,6 @@ static bool check_unique_outputs(const Job *job) {
     return true;
 }
 
-/* ---- runtime objects ---- */
-
-/* True if one of the inputs is itself that runtime unit (e.g. building brt.tri), so
- * linking the installed copy as well would give duplicate symbols. */
 static bool is_input_stem(const Job *job, const char *name) {
     for (size_t i = 0; i < job->n; i++) {
         if (strcmp(job->stems[i], name) == 0) {
@@ -142,7 +130,6 @@ static bool add_runtime_object(Job *job, const char *name) {
     return true;
 }
 
-/* Skipped with -c. Appends the runtime objects after the user's objects. */
 static bool find_runtime(Job *job) {
     if (job->compile_only) {
         return true;
@@ -154,8 +141,6 @@ static bool find_runtime(Job *job) {
     }
     return true;
 }
-
-/* ---- compiling one unit ---- */
 
 static bool make_path(char *dst, size_t n, const char *fmt, ...) {
     va_list ap;
@@ -174,8 +159,6 @@ static bool make_obj_path(Job *job, size_t i) {
                      OBJ_FMT);
 }
 
-/* source -> asm (temp dir) -> object. Touches only slot i of job->objs, so units can
- * run on different threads without locking. */
 static bool compile_unit(Job *job, size_t i) {
     const char *src = job->inputs[i];
     char asm_path[PATH_MAX_LEN];
@@ -193,11 +176,9 @@ static bool compile_unit(Job *job, size_t i) {
     return true;
 }
 
-/* ---- thread pool ---- */
-
 static bool claim_unit(Pool *pool, size_t *i) {
     if (atomic_load(&pool->failed)) {
-        return false; /* stop handing out work once something failed */
+        return false;
     }
     *i = atomic_fetch_add(&pool->next, 1);
     return *i < pool->job->n;
@@ -223,10 +204,9 @@ static size_t pick_threads(const Job *job) {
     if (t > MAX_THREADS) {
         t = MAX_THREADS;
     }
-    return t < job->n ? t : job->n; /* never more threads than inputs */
+    return t < job->n ? t : job->n;
 }
 
-/* Returns how many threads started; a failed pthread_create just means fewer helpers. */
 static size_t spawn_workers(Pool *pool, pthread_t *tids, size_t count) {
     size_t started = 0;
     while (started < count && pthread_create(&tids[started], NULL, worker, pool) == 0) {
@@ -249,7 +229,7 @@ static bool compile_parallel(Job *job) {
 
     pthread_t *tids = calloc(nthreads, sizeof *tids);
     size_t started = tids ? spawn_workers(&pool, tids, nthreads - 1) : 0;
-    worker(&pool); /* the calling thread is a worker too */
+    worker(&pool);
     join_workers(tids, started);
     free(tids);
     return !atomic_load(&pool.failed);
@@ -263,9 +243,6 @@ static bool compile_all(Job *job) {
     return compile_parallel(job);
 }
 
-/* ---- link ---- */
-
-/* Skipped with -c. Default executable name is the first input's stem. */
 static bool link_all(const Job *job) {
     if (job->compile_only) {
         return true;

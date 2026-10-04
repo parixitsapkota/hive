@@ -6,13 +6,6 @@
 #include "lexer.h"
 #include "parser.h"
 
-// Parser helper funcions
-Token *ppeak(const Parser *p);
-Token *pconsume(Parser *p);
-void expect_and_consume(Parser *p, TokenKind kind);
-void add_node(AstNode **t_node, AstNode *node);
-Token *curr(const Parser *p);
-
 AstNode *parse_scope_f(Parser *p, AstScope *parent, size_t parent_stack_offset, Hs *symtab);
 
 Parser *init_parser(Lexer *l) {
