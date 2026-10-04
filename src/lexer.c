@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "ast.h"
 #include "dep/keywords.h"
 #include "lexer.h"
 
@@ -55,6 +56,12 @@ static bool is_octal(char c) { return c >= '0' && c <= '7'; }
 static bool is_ident_char(char c) { return isalnum((unsigned char)c) != 0 || c == '_'; }
 
 static bool is_at_end(const Lexer *l) { return l->i >= l->buf_len; }
+
+static Position *position(Lexer *l, size_t ln, size_t cn) {
+    Position *position = arena_alloc(l->positions, sizeof(Position));
+    *position = (Position){.ln = ln, .cn = cn};
+    return position;
+}
 
 static char peek(const Lexer *l, size_t offset) {
     if (l->i + offset >= l->buf_len) {
@@ -109,7 +116,7 @@ static void emit(Lexer *l, Mark start, TokenKind kind, const char *lexeme, size_
     *token = (Token){.kind = kind,
                      .lexeme = lexeme,
                      .int_lit = int_lit,
-                     .position = (Position){.ln = start.ln, .cn = start.cn},
+                     .position = position(l, start.ln, start.cn),
                      .next = NULL};
     l->t_token->next = token;
     l->t_token = token;
@@ -310,6 +317,7 @@ Lexer *init_lexer(const char *file, const char *buffer, size_t buf_len) {
     l->t_cn = 1;
     l->srt_data_c = 0;
     l->tokens = init_arena(sizeof(Token) * TOKENS_STORE);
+    l->positions = init_arena(sizeof(Position) * TOKENS_STORE);
     l->str_arena = init_arena(sizeof(char) * (buf_len * 0.75));
     l->t_token = NULL;
     l->tok_head = NULL;
@@ -335,10 +343,9 @@ void lexer(Lexer *l) {
 void free_lexer(Lexer *l) {
     free_arena(l->tokens);
     free_arena(l->str_arena);
+    free_arena(l->positions);
     free(l);
 }
-
-Position position(size_t ln, size_t cn) { return (Position){.ln = ln, .cn = cn}; }
 
 char *token_kind_to_str(TokenKind kind) {
     switch (kind) {

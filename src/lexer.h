@@ -34,14 +34,13 @@ typedef struct Token {
     const char *lexeme;
     size_t int_lit;
     // Position
-    Position position;
+    Position *position;
     // Next Token
     struct Token *next;
 } Token;
 
 /// Returns a tokenKind string based on given tokenKind.
 char *token_kind_to_str(TokenKind kind);
-Position position(size_t ln, size_t cn);
 
 // Lexer Structure
 typedef struct {
@@ -59,6 +58,7 @@ typedef struct {
     size_t srt_data_c;
     // Token List
     Arena *tokens;
+    Arena *positions;
     Token *tok_head;
     // Helper/Temp vars
     Token *t_token;

@@ -7,6 +7,7 @@
 #include <stdlib.h>
 
 #include "ast.h"
+#include "lexer.h"
 #include "parser.h"
 
 typedef struct IrNode IrNode;
@@ -73,6 +74,7 @@ struct IrNode {
 
     IrNode *nodes;
     IrNode *next;
+    Position *position;
 };
 
 // Ir context Structure
@@ -100,9 +102,11 @@ void gen_ir(Ir *ir);
 // helper functions
 bool is_mem_op(irop_t op);
 const char *irop_to_str(irop_t op);
-IrNode *new_ir_op(Arena *arena, size_t dest, irop_t op, size_t temp_1, size_t temp_2);
-IrNode *new_ir_named(Arena *arena, IrKind kind, const char *name, size_t dest);
-IrNode *new_ir_labled(Arena *arena, IrKind kind, size_t id, size_t id_f, size_t dest);
+IrNode *new_ir_op(Arena *arena, size_t dest, irop_t op, size_t temp_1, size_t temp_2,
+                  Position *position);
+IrNode *new_ir_named(Arena *arena, IrKind kind, const char *name, size_t dest, Position *position);
+IrNode *new_ir_labled(Arena *arena, IrKind kind, size_t id, size_t id_f, size_t dest,
+                      Position *position);
 void add_ir_node(IrNode **t_node, IrNode *node);
 
 #endif // HIVE_IR_H

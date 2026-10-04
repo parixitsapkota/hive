@@ -168,7 +168,7 @@ static void asm_call(FILE *f, const IrNode *n) {
     st(f, n->temp_dest, "rax");
 }
 
-static void asm_function(FILE *f, const IrNode *fn) {
+static void asm_function(FILE *f, const IrNode *fn, const char *file) {
     putc('\n', f);
     size_t max_t = fn->params, n_alloc = 0;
     for (const IrNode *t = fn->nodes; t; t = t->next) {
@@ -187,7 +187,7 @@ static void asm_function(FILE *f, const IrNode *fn) {
     size_t frame = total_slots * 8;
     frame = (frame + 15) & ~(size_t)15; // To keep rsp 16-byte aligned
 
-    fprintf(f, "global %s\n%s:\n", fn->name, fn->name);
+    fprintf(f, "global %s:function %s.end-%s\n%s:\n", fn->name, fn->name, fn->name, fn->name);
     fprintf(f, "  push rbp\n  mov rbp, rsp\n");
     if (frame) {
         fprintf(f, "  sub rsp, %zu\n", frame);
@@ -204,6 +204,7 @@ static void asm_function(FILE *f, const IrNode *fn) {
 
     size_t alloc_i = 1;
     for (const IrNode *t = fn->nodes; t; t = t->next) {
+        fprintf(f, "%%line %zu+0 \"%s\"\n", t->position->ln, file);
         switch (t->kind) {
         case IR_LABEL: fprintf(f, ".L%zu:\n", t->lable_id); break;
         case IR_OPERATION: asm_op(f, t, &alloc_i, max_t); break;
@@ -227,11 +228,13 @@ static void asm_function(FILE *f, const IrNode *fn) {
         default: break;
         }
     }
+    fprintf(f, "%s.end:\n", fn->name);
     fputc('\n', f);
 }
 
 void dump_x86_64_nasm(Ir *ir, FILE *f) {
-    fprintf(f, "; generated from %s\n", ir->module);
+    const char *file = ir->module;
+    fprintf(f, "; generated from %s\n", file);
     fprintf(f, "default rel\n\n");
 
     bool have_globals = false;
@@ -252,7 +255,7 @@ void dump_x86_64_nasm(Ir *ir, FILE *f) {
     fprintf(f, "section .text\n\n");
     for (const IrNode *curr = ir->ir_head; curr; curr = curr->next) {
         if (curr->kind == IR_FUNCTION) {
-            asm_function(f, curr);
+            asm_function(f, curr, file);
         } else if (curr->kind == IR_EXTRN) {
             fprintf(f, "extern %s\n", curr->name);
         }

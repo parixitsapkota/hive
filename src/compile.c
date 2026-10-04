@@ -74,18 +74,36 @@ bool compile_to_asm(const char *src, const char *asm_path, Targets kind) {
     return ok;
 }
 
-bool assemble(const char *asm_path, const char *obj_path) {
-    char *argv[] = {"nasm", "-f", NASM_FMT, (char *)asm_path, "-o", (char *)obj_path, NULL};
-    return run_command("nasm", argv) != 0;
+bool assemble(const char *asm_path, const char *obj_path, bool debug) {
+    const char *argv[12];
+    size_t n = 0;
+
+    argv[n++] = "nasm";
+    if (debug) {
+        argv[n++] = "-g";
+        argv[n++] = "-F";
+        argv[n++] = "dwarf";
+    }
+    argv[n++] = "-f";
+    argv[n++] = NASM_FMT;
+    argv[n++] = asm_path;
+    argv[n++] = "-o";
+    argv[n++] = obj_path;
+    argv[n] = NULL;
+
+    return run_command("nasm", (char *const *)argv) != 0;
 }
 
-bool link_objects(const char *exe, char (*objs)[PATH_MAX_LEN], size_t n) {
-    char **argv = malloc((n + 5) * sizeof *argv);
+bool link_objects(const char *exe, char (*objs)[PATH_MAX_LEN], size_t n, bool debug) {
+    char **argv = malloc((n + 6) * sizeof *argv);
     if (!argv) {
         return diag_error("out of memory");
     }
     size_t k = 0;
     argv[k++] = LINKER;
+    if (debug) {
+        argv[k++] = "-g";
+    }
     argv[k++] = "-no-pie";
     argv[k++] = "-o";
     argv[k++] = (char *)exe;

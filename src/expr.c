@@ -111,6 +111,7 @@ AstUnary *parse_unary_lop_s(Parser *p) {
 
 AstNode *parse_left_f(Parser *p) {
     Token *token = curr(p);
+    Position *position = p->tok->position;
 
     if (token->kind == O_PREN) {
         expect_and_consume(p, O_PREN);
@@ -122,16 +123,17 @@ AstNode *parse_left_f(Parser *p) {
     AstNode *left = arena_alloc(p->ast, sizeof(AstNode));
 
     if (token->kind == IDENTIFIER && token->next && token->next->kind == O_PREN) {
-        *left = (AstNode){AST_FUNCTION_CALL, .function_call_n = parse_function_call_s(p)};
+        *left = (AstNode){AST_FUNCTION_CALL, .function_call_n = parse_function_call_s(p),
+                          .position = position};
         return left;
     }
 
     if (is_unary_op(token->kind)) {
-        *left = (AstNode){AST_UNARY, .unary_n = parse_unary_lop_s(p)};
+        *left = (AstNode){AST_UNARY, .unary_n = parse_unary_lop_s(p), .position = position};
         return left;
     }
 
-    *left = (AstNode){AST_ATOM, .atom_n = parse_atom_f(p)};
+    *left = (AstNode){AST_ATOM, .atom_n = parse_atom_f(p), .position = position};
 
     if (curr(p)->kind == O_BRACKET) {
         pconsume(p);
@@ -139,22 +141,28 @@ AstNode *parse_left_f(Parser *p) {
         expect_and_consume(p, C_BRACKET);
 
         AstNode *left_address = arena_alloc(p->ast, sizeof(AstNode));
-        *left_address =
-            (AstNode){.kind = AST_UNARY, .unary_n = new_ast_unary(p->ast, left, BIT_AND)};
+        *left_address = (AstNode){.kind = AST_UNARY,
+                                  .unary_n = new_ast_unary(p->ast, left, BIT_AND),
+                                  .position = position};
 
         AstNode *eight = arena_alloc(p->ast, sizeof(AstNode));
-        *eight = (AstNode){.kind = AST_ATOM, .atom_n = new_ast_atom(p->ast, INT, NULL, 8)};
+        *eight = (AstNode){
+            .kind = AST_ATOM, .atom_n = new_ast_atom(p->ast, INT, NULL, 8), .position = position};
 
         AstNode *index = arena_alloc(p->ast, sizeof(AstNode));
         *index = (AstNode){.kind = AST_BINARY,
-                           .binary_n = new_ast_binary(p->ast, index_expr, MUL, eight)};
+                           .binary_n = new_ast_binary(p->ast, index_expr, MUL, eight),
+                           .position = position};
 
         AstNode *address = arena_alloc(p->ast, sizeof(AstNode));
         *address = (AstNode){.kind = AST_BINARY,
-                             .binary_n = new_ast_binary(p->ast, index, ADD, left_address)};
+                             .binary_n = new_ast_binary(p->ast, index, ADD, left_address),
+                             .position = position};
 
         AstNode *ret = arena_alloc(p->ast, sizeof(AstNode));
-        *ret = (AstNode){.kind = AST_UNARY, .unary_n = new_ast_unary(p->ast, address, MUL)};
+        *ret = (AstNode){.kind = AST_UNARY,
+                         .unary_n = new_ast_unary(p->ast, address, MUL),
+                         .position = position};
         left = ret;
     }
 
@@ -170,8 +178,8 @@ AstNode *parse_expr_f(Parser *p, Precedence prec) {
 
         if (op_prec == PREC_UNKNOWN) {
             Token *tok = curr(p);
-            fprintf(stderr, "%s:%zu:%zu: Unknown operator `%s`.\n", p->l->file, tok->position.ln,
-                    tok->position.cn, token_kind_to_str(tok->kind));
+            fprintf(stderr, "%s:%zu:%zu: Unknown operator `%s`.\n", p->l->file, tok->position->ln,
+                    tok->position->cn, token_kind_to_str(tok->kind));
             exit(EXIT_FAILURE);
         }
 
@@ -179,7 +187,8 @@ AstNode *parse_expr_f(Parser *p, Precedence prec) {
             break;
         }
 
-        Token *op_tok = pconsume(p);
+        Position *position = p->tok->position;
+        pconsume(p);
 
         AstNode *right;
         if (is_proc_left_Associative(op_prec)) {
@@ -191,7 +200,7 @@ AstNode *parse_expr_f(Parser *p, Precedence prec) {
         AstNode *node = arena_alloc(p->ast, sizeof(AstNode));
 
         *node = (AstNode){AST_BINARY, .binary_n = new_ast_binary(p->ast, left, op, right),
-                          .position = position(op_tok->position.ln, op_tok->position.cn)};
+                          .position = position};
         left = node;
     }
 

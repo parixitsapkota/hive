@@ -90,22 +90,33 @@ const char *irop_to_str(irop_t op) {
     }
 }
 
-IrNode *new_ir_op(Arena *arena, size_t dest, irop_t op, size_t temp_1, size_t temp_2) {
+IrNode *new_ir_op(Arena *arena, size_t dest, irop_t op, size_t temp_1, size_t temp_2,
+                  Position *position) {
     IrNode *node = arena_alloc(arena, sizeof(IrNode));
-    *node = (IrNode){
-        .kind = IR_OPERATION, .temp_dest = dest, .op = op, .temp_1 = temp_1, .temp_2 = temp_2};
+    *node = (IrNode){.kind = IR_OPERATION,
+                     .temp_dest = dest,
+                     .op = op,
+                     .temp_1 = temp_1,
+                     .temp_2 = temp_2,
+                     .position = position};
     return node;
 }
 
-IrNode *new_ir_named(Arena *arena, IrKind kind, const char *name, size_t dest) {
+IrNode *new_ir_named(Arena *arena, IrKind kind, const char *name, size_t dest,
+                     Position *position) {
     IrNode *node = arena_alloc(arena, sizeof(IrNode));
-    *node = (IrNode){.kind = kind, .name = name, .temp_dest = dest};
+    *node = (IrNode){.kind = kind, .name = name, .temp_dest = dest, .position = position};
     return node;
 }
 
-IrNode *new_ir_labled(Arena *arena, IrKind kind, size_t id, size_t id_f, size_t dest) {
+IrNode *new_ir_labled(Arena *arena, IrKind kind, size_t id, size_t id_f, size_t dest,
+                      Position *position) {
     IrNode *node = arena_alloc(arena, sizeof(IrNode));
-    *node = (IrNode){.kind = kind, .lable_id = id, .lable_id_f = id_f, .temp_dest = dest};
+    *node = (IrNode){.kind = kind,
+                     .lable_id = id,
+                     .lable_id_f = id_f,
+                     .temp_dest = dest,
+                     .position = position};
     return node;
 }
 
@@ -120,53 +131,58 @@ void add_ir_node(IrNode **t_node, IrNode *node) {
     *t_node = node;
 }
 
-size_t emmit_call(Ir *ir, IrNode **tail, const char *name, size_t *args, size_t params) {
+size_t emmit_call(Ir *ir, IrNode **tail, const char *name, size_t *args, size_t params,
+                  Position *position) {
     size_t t = ++ir->temp_c;
     IrNode *node = arena_alloc(ir->ir_arena, sizeof(IrNode));
-    *node =
-        (IrNode){.kind = IR_CALL, .temp_dest = t, .name = name, .args = args, .params = params};
+    *node = (IrNode){.kind = IR_CALL,
+                     .temp_dest = t,
+                     .name = name,
+                     .args = args,
+                     .params = params,
+                     .position = position};
     add_ir_node(tail, node);
     return t;
 }
 
-size_t emit_const(Ir *ir, irop_t kind, IrNode **tail, size_t value) {
+size_t emit_const(Ir *ir, irop_t kind, IrNode **tail, size_t value, Position *position) {
     size_t t = ++ir->temp_c;
-    IrNode *n = new_ir_op(ir->ir_arena, t, kind, 0, 0);
+    IrNode *n = new_ir_op(ir->ir_arena, t, kind, 0, 0, position);
     n->imm = value;
     add_ir_node(tail, n);
     return t;
 }
 
-size_t load_global(Ir *ir, IrNode **tail, const char *name) {
+size_t load_global(Ir *ir, IrNode **tail, const char *name, Position *position) {
     size_t t = ++ir->temp_c;
-    IrNode *n = new_ir_op(ir->ir_arena, t, OP_GLOBAL_L, 0, 0);
+    IrNode *n = new_ir_op(ir->ir_arena, t, OP_GLOBAL_L, 0, 0, position);
     n->name = name;
     add_ir_node(tail, n);
     return t;
 }
 
-void store_global(Ir *ir, IrNode **tail, const char *name, size_t value) {
-    IrNode *n = new_ir_op(ir->ir_arena, 0, OP_GLOBAL_S, 0, value);
+void store_global(Ir *ir, IrNode **tail, const char *name, size_t value, Position *position) {
+    IrNode *n = new_ir_op(ir->ir_arena, 0, OP_GLOBAL_S, 0, value, position);
     n->name = name;
     add_ir_node(tail, n);
 }
 
-size_t emit_global_addr(Ir *ir, IrNode **tail, const char *name) {
+size_t emit_global_addr(Ir *ir, IrNode **tail, const char *name, Position *position) {
     size_t t = ++ir->temp_c;
-    IrNode *n = new_ir_op(ir->ir_arena, t, OP_GLOBAL_ADDR, 0, 0);
+    IrNode *n = new_ir_op(ir->ir_arena, t, OP_GLOBAL_ADDR, 0, 0, position);
     n->name = name;
     add_ir_node(tail, n);
     return t;
 }
 
-size_t emit_op(Ir *ir, IrNode **tail, irop_t op, size_t a, size_t b) {
+size_t emit_op(Ir *ir, IrNode **tail, irop_t op, size_t a, size_t b, Position *position) {
     size_t t = ++ir->temp_c;
-    add_ir_node(tail, new_ir_op(ir->ir_arena, t, op, a, b));
+    add_ir_node(tail, new_ir_op(ir->ir_arena, t, op, a, b, position));
     return t;
 }
 
-void emit_store(Ir *ir, IrNode **tail, size_t value, size_t addr) {
-    add_ir_node(tail, new_ir_op(ir->ir_arena, 0, OP_STORE, addr, value));
+void emit_store(Ir *ir, IrNode **tail, size_t value, size_t addr, Position *position) {
+    add_ir_node(tail, new_ir_op(ir->ir_arena, 0, OP_STORE, addr, value, position));
 }
 
 VarInfo *lookup_symbol(AstScope *scope, const char *name) {
@@ -247,25 +263,28 @@ LValue ir_lvalue(Ir *ir, AstNode *node, AstScope *scope, IrNode **block_tail) {
 }
 
 size_t ir_load_lvalue(Ir *ir, IrNode **block_tail, LValue lv) {
+    Position *position = ir->t_node->position;
     if (lv.kind == LV_GLOBAL) {
-        return load_global(ir, block_tail, lv.name);
+        return load_global(ir, block_tail, lv.name, position);
     }
-    return emit_op(ir, block_tail, OP_LOAD, lv.addr_temp, 0);
+    return emit_op(ir, block_tail, OP_LOAD, lv.addr_temp, 0, position);
 }
 
 void ir_store_lvalue(Ir *ir, IrNode **block_tail, size_t value, LValue lv) {
+    Position *position = ir->t_node->position;
     if (lv.kind == LV_GLOBAL) {
-        store_global(ir, block_tail, lv.name, value);
+        store_global(ir, block_tail, lv.name, value, position);
     } else {
-        emit_store(ir, block_tail, value, lv.addr_temp);
+        emit_store(ir, block_tail, value, lv.addr_temp, position);
     }
 }
 
 size_t ir_addr_of_lvalue(Ir *ir, IrNode **block_tail, LValue lv) {
+    Position *position = ir->t_node->position;
     if (lv.kind == LV_GLOBAL) {
-        return emit_global_addr(ir, block_tail, lv.name);
+        return emit_global_addr(ir, block_tail, lv.name, position);
     }
-    return emit_op(ir, block_tail, OP_ADDRESS, lv.addr_temp, 0);
+    return emit_op(ir, block_tail, OP_ADDRESS, lv.addr_temp, 0, position);
 }
 
 size_t ir_expr_f(Ir *ir, AstNode *node, AstScope *scope, IrNode **block_tail) {
@@ -273,10 +292,12 @@ size_t ir_expr_f(Ir *ir, AstNode *node, AstScope *scope, IrNode **block_tail) {
         return 0;
     }
 
+    Position *position = ir->t_node->position;
+
     switch (node->kind) {
     case AST_ATOM: {
         switch (node->atom_n->kind) {
-        case INT: return emit_const(ir, OP_CONST, block_tail, node->atom_n->int_lit);
+        case INT: return emit_const(ir, OP_CONST, block_tail, node->atom_n->int_lit, position);
 
         case IDENTIFIER: {
             const char *name = node->atom_n->value;
@@ -285,15 +306,15 @@ size_t ir_expr_f(Ir *ir, AstNode *node, AstScope *scope, IrNode **block_tail) {
                 if (var->temp_dest == 0) {
                     ir_fatal("Variable '%s' has no storage slot yet", name);
                 }
-                return emit_op(ir, block_tail, OP_LOAD, var->temp_dest, 0);
+                return emit_op(ir, block_tail, OP_LOAD, var->temp_dest, 0, position);
             } else if (var->kind == GLOBAL_VAR) {
-                return load_global(ir, block_tail, name);
+                return load_global(ir, block_tail, name, position);
             }
             ir_fatal("Undefined variable '%s'", name);
         }
 
         case STRING: {
-            return emit_const(ir, OP_DATA, block_tail, node->atom_n->int_lit);
+            return emit_const(ir, OP_DATA, block_tail, node->atom_n->int_lit, position);
         }
 
         default:
@@ -314,26 +335,26 @@ size_t ir_expr_f(Ir *ir, AstNode *node, AstScope *scope, IrNode **block_tail) {
 
         case MUL: {
             size_t addr = ir_expr_f(ir, operand, scope, block_tail);
-            return emit_op(ir, block_tail, OP_LOAD, addr, 0);
+            return emit_op(ir, block_tail, OP_LOAD, addr, 0, position);
         }
 
         case SUB: {
             size_t v = ir_expr_f(ir, operand, scope, block_tail);
-            return emit_op(ir, block_tail, OP_NEG, v, 0);
+            return emit_op(ir, block_tail, OP_NEG, v, 0, position);
         }
 
         case NOT: {
             size_t v = ir_expr_f(ir, operand, scope, block_tail);
-            size_t zero = emit_const(ir, OP_CONST, block_tail, 0);
-            return emit_op(ir, block_tail, OP_EQ, v, zero);
+            size_t zero = emit_const(ir, OP_CONST, block_tail, 0, position);
+            return emit_op(ir, block_tail, OP_EQ, v, zero, position);
         }
 
         case INC:
         case DEC: {
             LValue lv = ir_lvalue(ir, operand, scope, block_tail);
             size_t old = ir_load_lvalue(ir, block_tail, lv);
-            size_t one = emit_const(ir, OP_CONST, block_tail, 1);
-            size_t nv = emit_op(ir, block_tail, op == INC ? OP_ADD : OP_SUB, old, one);
+            size_t one = emit_const(ir, OP_CONST, block_tail, 1, position);
+            size_t nv = emit_op(ir, block_tail, op == INC ? OP_ADD : OP_SUB, old, one, position);
             ir_store_lvalue(ir, block_tail, nv, lv);
             return nv;
         }
@@ -358,10 +379,11 @@ size_t ir_expr_f(Ir *ir, AstNode *node, AstScope *scope, IrNode **block_tail) {
         }
         size_t a = ir_expr_f(ir, node->binary_n->left, scope, block_tail);
         size_t b = ir_expr_f(ir, node->binary_n->right, scope, block_tail);
-        return emit_op(ir, block_tail, irop, a, b);
+        return emit_op(ir, block_tail, irop, a, b, position);
     }
 
     case AST_FUNCTION_CALL: {
+        Position *position = ir->t_node->position;
         AstNode *arg = node->function_call_n->args;
         size_t argc = node->function_call_n->argc;
         const char *name = node->function_call_n->name;
@@ -371,7 +393,7 @@ size_t ir_expr_f(Ir *ir, AstNode *node, AstScope *scope, IrNode **block_tail) {
             args[i] = ir_expr_f(ir, arg, scope, block_tail);
             arg = arg->next;
         }
-        return emmit_call(ir, block_tail, name, args, argc);
+        return emmit_call(ir, block_tail, name, args, argc, position);
     }
 
     default: ir_fatal("Unhandled node kind (%d) in ir_expr_f", (int)node->kind);
@@ -379,44 +401,51 @@ size_t ir_expr_f(Ir *ir, AstNode *node, AstScope *scope, IrNode **block_tail) {
 }
 
 void ir_auto_s(Ir *ir, AstNode *curr, AstScope *scope, IrNode **block_tail) {
+    Position *position = ir->t_node->position;
     VarInfo *info = lookup_symbol(scope, curr->var_n->name);
     if (!info) {
         ir_fatal("Symbol '%s' not found in scope", curr->var_n->name);
     }
-    info->temp_dest = emit_op(ir, block_tail, OP_ALLOC, 0, 0);
+    info->temp_dest = emit_op(ir, block_tail, OP_ALLOC, 0, 0, position);
 }
 
 void ir_lable_s(Ir *ir, AstNode *curr, IrNode **block_tail) {
+    Position *position = ir->t_node->position;
     if (ir->t_lable_tab && has_in_hash_set(ir->t_lable_tab, curr->name_s)) {
         VarInfo *info = get_from_hash_set(ir->t_lable_tab, curr->name_s);
         if (info->temp_dest == 0) {
             info->temp_dest = ++(ir->lable_c);
         }
-        add_ir_node(block_tail, new_ir_labled(ir->ir_arena, IR_LABEL, info->temp_dest, 0, 0));
+        add_ir_node(block_tail,
+                    new_ir_labled(ir->ir_arena, IR_LABEL, info->temp_dest, 0, 0, position));
     } else {
         ir_fatal("No lable %s in current resolution.", curr->name_s);
     }
 }
 
 void ir_goto_s(Ir *ir, AstNode *curr, IrNode **block_tail) {
+    Position *position = ir->t_node->position;
     if (ir->t_lable_tab && has_in_hash_set(ir->t_lable_tab, curr->name_s)) {
         VarInfo *info = get_from_hash_set(ir->t_lable_tab, curr->name_s);
         if (info->temp_dest == 0) {
             info->temp_dest = ++(ir->lable_c);
         }
-        add_ir_node(block_tail, new_ir_labled(ir->ir_arena, IR_JUMP, info->temp_dest, 0, 0));
+        add_ir_node(block_tail,
+                    new_ir_labled(ir->ir_arena, IR_JUMP, info->temp_dest, 0, 0, position));
     } else {
         ir_fatal("No lable %s in current resolution.", curr->name_s);
     }
 }
 
 void ir_extrn_s(Ir *ir, AstNode *curr) {
-    add_ir_node(&ir->ir_tail, new_ir_named(ir->ir_arena, IR_EXTRN, curr->name_s, 0));
+    Position *position = ir->t_node->position;
+    add_ir_node(&ir->ir_tail, new_ir_named(ir->ir_arena, IR_EXTRN, curr->name_s, 0, position));
 }
 
 void ir_return_s(Ir *ir, AstNode *curr, AstScope *scope, IrNode **block_tail) {
+    Position *position = ir->t_node->position;
     size_t ret_temp = ir_expr_f(ir, curr->node, scope, block_tail);
-    add_ir_node(block_tail, new_ir_named(ir->ir_arena, IR_RETURN, NULL, ret_temp));
+    add_ir_node(block_tail, new_ir_named(ir->ir_arena, IR_RETURN, NULL, ret_temp, position));
 }
 
 void ir_statements(Ir *ir, AstNode *curr, AstScope *scope, IrNode **block_tail);
@@ -447,17 +476,24 @@ void ir_if_chain_s(Ir *ir, AstNode *curr, AstScope *scope, size_t end_label_id,
         size_t then_label = ++(ir->lable_c);
         size_t next_label = ++(ir->lable_c);
 
+        Position *position = ir->t_node->position;
         size_t condition = ir_expr_f(ir, curr->if_n->Condition, scope, block_tail);
+        position = ir->t_node->position;
+        add_ir_node(block_tail, new_ir_labled(ir->ir_arena, IR_BRANCH, then_label, next_label,
+                                              condition, position));
+        position = ir->t_node->position;
         add_ir_node(block_tail,
-                    new_ir_labled(ir->ir_arena, IR_BRANCH, then_label, next_label, condition));
-        add_ir_node(block_tail, new_ir_labled(ir->ir_arena, IR_LABEL, then_label, 0, 0));
+                    new_ir_labled(ir->ir_arena, IR_LABEL, then_label, 0, 0, position));
 
         if (curr->if_n->body && curr->if_n->body->kind == AST_SCOPE) {
             ir_scope(ir, curr->if_n->body, block_tail);
         }
 
-        add_ir_node(block_tail, new_ir_labled(ir->ir_arena, IR_JUMP, end_label_id, 0, 0));
-        add_ir_node(block_tail, new_ir_labled(ir->ir_arena, IR_LABEL, next_label, 0, 0));
+        position = ir->t_node->position;
+        add_ir_node(block_tail,
+                    new_ir_labled(ir->ir_arena, IR_JUMP, end_label_id, 0, 0, position));
+        add_ir_node(block_tail,
+                    new_ir_labled(ir->ir_arena, IR_LABEL, next_label, 0, 0, position));
 
         if (curr->if_n->chain) {
             ir_if_chain_s(ir, curr->if_n->chain, scope, end_label_id, block_tail);
@@ -470,29 +506,34 @@ void ir_if_chain_s(Ir *ir, AstNode *curr, AstScope *scope, size_t end_label_id,
 }
 
 void ir_if_s(Ir *ir, AstNode *node, AstScope *scope, IrNode **block_tail) {
+    Position *position = ir->t_node->position;
     size_t end_label_id = ++(ir->lable_c);
     ir_if_chain_s(ir, node, scope, end_label_id, block_tail);
-    add_ir_node(block_tail, new_ir_labled(ir->ir_arena, IR_LABEL, end_label_id, 0, 0));
+    add_ir_node(block_tail, new_ir_labled(ir->ir_arena, IR_LABEL, end_label_id, 0, 0, position));
 }
 
 void ir_while_s(Ir *ir, AstNode *node, AstScope *scope, IrNode **block_tail) {
+    Position *position = ir->t_node->position;
     size_t cond_label = ++(ir->lable_c);
     size_t body_label = ++(ir->lable_c);
     size_t exit_label = ++(ir->lable_c);
 
-    add_ir_node(block_tail, new_ir_labled(ir->ir_arena, IR_LABEL, cond_label, 0, 0));
+    add_ir_node(block_tail, new_ir_labled(ir->ir_arena, IR_LABEL, cond_label, 0, 0, position));
 
     size_t condition = ir_expr_f(ir, node->while_n->Condition, scope, block_tail);
-    add_ir_node(block_tail,
-                new_ir_labled(ir->ir_arena, IR_BRANCH, body_label, exit_label, condition));
-    add_ir_node(block_tail, new_ir_labled(ir->ir_arena, IR_LABEL, body_label, 0, 0));
+    position = ir->t_node->position;
+    add_ir_node(block_tail, new_ir_labled(ir->ir_arena, IR_BRANCH, body_label, exit_label,
+                                          condition, position));
+    position = ir->t_node->position;
+    add_ir_node(block_tail, new_ir_labled(ir->ir_arena, IR_LABEL, body_label, 0, 0, position));
 
     if (node->while_n->body && node->while_n->body->kind == AST_SCOPE) {
         ir_scope(ir, node->while_n->body, block_tail);
     }
 
-    add_ir_node(block_tail, new_ir_labled(ir->ir_arena, IR_JUMP, cond_label, 0, 0));
-    add_ir_node(block_tail, new_ir_labled(ir->ir_arena, IR_LABEL, exit_label, 0, 0));
+    position = ir->t_node->position;
+    add_ir_node(block_tail, new_ir_labled(ir->ir_arena, IR_JUMP, cond_label, 0, 0, position));
+    add_ir_node(block_tail, new_ir_labled(ir->ir_arena, IR_LABEL, exit_label, 0, 0, position));
 }
 
 void ir_statements(Ir *ir, AstNode *curr, AstScope *scope, IrNode **block_tail) {
@@ -511,6 +552,7 @@ void ir_statements(Ir *ir, AstNode *curr, AstScope *scope, IrNode **block_tail) 
 }
 
 IrNode *ir_function_s(Ir *ir, AstNode *func) {
+    Position *position = ir->t_node->position;
     const char *func_name = func->function_n->name;
     size_t params = func->function_n->params;
     AstNode *body_scope = func->function_n->body;
@@ -521,28 +563,32 @@ IrNode *ir_function_s(Ir *ir, AstNode *func) {
 
     size_t entry_label = ++(ir->lable_c);
     IrNode *entry = arena_alloc(ir->ir_arena, sizeof(IrNode));
-    *entry = (IrNode){.kind = IR_LABEL, .lable_id = entry_label};
+    *entry = (IrNode){.kind = IR_LABEL, .lable_id = entry_label, .position = position};
     IrNode *block_tail = entry;
 
     for (size_t i = 1; i <= params; ++i) {
-        size_t slot = emit_op(ir, &block_tail, OP_ALLOC, 0, 0);
-        emit_store(ir, &block_tail, i, slot);
-        add_ir_node(&block_tail, new_ir_op(ir->ir_arena, i, OP_ADDRESS, slot, 0));
+        size_t slot = emit_op(ir, &block_tail, OP_ALLOC, 0, 0, position);
+        emit_store(ir, &block_tail, i, slot, position);
+        add_ir_node(&block_tail, new_ir_op(ir->ir_arena, i, OP_ADDRESS, slot, 0, position));
     }
 
     ir_scope(ir, body_scope, &block_tail);
 
+    position = ir->t_node->position;
     if (block_tail->kind != IR_RETURN) {
-        size_t zero = emit_const(ir, OP_CONST, &block_tail, 0);
-        add_ir_node(&block_tail, new_ir_named(ir->ir_arena, IR_RETURN, NULL, zero));
+        size_t zero = emit_const(ir, OP_CONST, &block_tail, 0, position);
+        add_ir_node(&block_tail, new_ir_named(ir->ir_arena, IR_RETURN, NULL, zero, position));
     }
 
     free_hash_set(func->function_n->params_tab);
     free_hash_set(func->function_n->lable_tab);
 
     IrNode *func_node = arena_alloc(ir->ir_arena, sizeof(IrNode));
-    *func_node =
-        (IrNode){.kind = IR_FUNCTION, .name = func_name, .params = params, .nodes = entry};
+    *func_node = (IrNode){.kind = IR_FUNCTION,
+                          .name = func_name,
+                          .params = params,
+                          .nodes = entry,
+                          .position = position};
     return func_node;
 }
 
@@ -554,15 +600,14 @@ void gen_ir(Ir *ir) {
 
     AstNode *curr = ir->p->ast_head ? ir->p->ast_head->next : NULL;
     while (curr != NULL) {
+        ir->t_node = curr;
+        Position *position = ir->t_node->position;
         if (curr->kind == AST_FUNCTION) {
-            ir->t_node = curr;
             add_ir_node(&ir->ir_tail, ir_function_s(ir, curr));
         } else if (curr->kind == AST_GLOBAL) {
-            ir->t_node = curr;
             add_ir_node(&ir->ir_tail, new_ir_named(ir->ir_arena, IR_GLOBAL, curr->var_n->name,
-                                                   curr->var_n->size));
+                                                   curr->var_n->size, position));
         } else if (curr->kind == AST_EXTRN) {
-            ir->t_node = curr;
             ir_extrn_s(ir, curr);
         }
         curr = curr->next;

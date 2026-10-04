@@ -7,6 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "backend.h"
 #include "compile.h"
 #include "config.h"
 #include "diag.h"
@@ -20,6 +21,7 @@ typedef struct {
     const char *const *inputs;
     size_t n;
     bool compile_only;
+    bool dbg;
     bool keep_temps;
     const char *output;
     Targets kind;
@@ -62,6 +64,7 @@ static bool job_init(Job *job, const JobSpec *spec) {
     job->stems = calloc(job->n, sizeof *job->stems);
     job->objs = calloc(job->n + runtime_count(), sizeof *job->objs);
     job->n_objs = job->n;
+    job->dbg = spec->dbg;
     if (job->stems && job->objs) {
         return true;
     }
@@ -151,7 +154,7 @@ static bool make_path(char *dst, size_t n, const char *fmt, ...) {
 }
 
 static bool make_obj_path(Job *job, size_t i) {
-    if (job->compile_only) { /* final object goes in the current directory, like gcc -c */
+    if (job->compile_only) {
         return append_extension(job->stems[i], OBJ_FMT, job->objs[i], PATH_MAX_LEN) != 0 ||
                diag_error("path too long");
     }
@@ -170,7 +173,7 @@ static bool compile_unit(Job *job, size_t i) {
     if (!compile_to_asm(src, asm_path, job->kind)) {
         return diag_error("%s : compilation failed", src);
     }
-    if (!assemble(asm_path, job->objs[i])) {
+    if (!assemble(asm_path, job->objs[i], job->dbg)) {
         return diag_error("%s : assembling failed", src);
     }
     return true;
@@ -248,7 +251,7 @@ static bool link_all(const Job *job) {
         return true;
     }
     const char *exe = job->output ? job->output : job->stems[0];
-    if (link_objects(exe, job->objs, job->n_objs)) {
+    if (link_objects(exe, job->objs, job->n_objs, job->dbg)) {
         return true;
     }
     return diag_error("linking failed");

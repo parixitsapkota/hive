@@ -11,6 +11,7 @@ typedef struct {
     size_t n_inputs;
     bool compile_only;
     bool keep_temps;
+    bool dbg;
     const char *output;
     Targets kind;
     size_t threads;

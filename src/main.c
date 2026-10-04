@@ -16,7 +16,8 @@
 void usage(void) {
     const char *prog = shi_flag_program_name();
     fprintf(stderr, "Usage: %s [OPTIONS] -i <input.tri>...\n", prog);
-    fprintf(stderr, "  %s -i a.tri b.tri -o prog   compile and link into executable 'prog'\n", prog);
+    fprintf(stderr, "  %s -i a.tri b.tri -o prog   compile and link into executable 'prog'\n",
+            prog);
     fprintf(stderr, "  %s -i a.tri b.tri -c        compile each input to its own object file\n",
             prog);
     fprintf(stderr, "  %s -i a.tri b.tri -j 4      compile with 4 threads\n\n", prog);
@@ -40,9 +41,12 @@ void define_flags(Options *o) {
                                "compile each input to an object file, do not link.");
     shi_flag_set_short(o->compile, "c");
 
-    o->keep_temps = shi_flag_bool("-keep-temps", false,
-                                  "keep the intermediate .asm/.o files and print where they are.");
+    o->keep_temps = shi_flag_bool(
+        "-keep-temps", false, "keep the intermediate .asm/.o files and print where they are.");
     shi_flag_set_short(o->keep_temps, "k");
+
+    o->dbg = shi_flag_bool("-gen-debug-symbols", false, "generates debug info.");
+    shi_flag_set_short(o->dbg, "g");
 
     static char *mut_names = NULL;
     o->names = shi_flag_list_mut("-input", mut_names);
@@ -95,6 +99,7 @@ bool options_to_spec(const Options *o, JobSpec *spec) {
     spec->compile_only = *o->compile;
     spec->keep_temps = *o->keep_temps;
     spec->output = *o->output;
+    spec->dbg = *o->dbg;
     spec->kind = target_string_to_kind(*o->target);
     return true;
 }

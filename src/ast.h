@@ -101,7 +101,7 @@ struct AstNode {
         const char *name_s;
     };
     // Position
-    Position position;
+    Position *position;
     // for Compound/If statements.
     AstNode *next;
 };
