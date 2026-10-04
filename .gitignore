@@ -9,6 +9,7 @@ src/dep/
 
 # Build generated
 build/
+lib/
 hive
 *.exe
 
