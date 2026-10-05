@@ -1,15 +1,16 @@
 #include <stdlib.h>
 
+#include "include/core/location.h"
 #include "include/syntax/lexer/tokens.h"
 
 const char *token_kind_to_str(TokenKind kind) {
     switch (kind) {
 #define TOKEN(tok)                                                                       \
-    case tok: return #tok;
+    case TOK_##tok: return #tok;
 #define KEYWORDS(tok, name)                                                              \
-    case tok: return name;
+    case TOK_##tok: return name;
 #define PUNCTUATION(tok, name)                                                           \
-    case tok: return name;
+    case TOK_##tok: return name;
 #include "include/syntax/lexer/tokens.def"
 #undef TOKEN
 #undef KEYWORDS
@@ -19,8 +20,8 @@ const char *token_kind_to_str(TokenKind kind) {
 }
 
 Token *new_token(Arena *arena, TokenKind kind, const char *lexeme, size_t int_lit,
-                 Location *location) {
+                 Span span) {
     Token *token = arena_alloc(arena, sizeof(Token));
-    *token = (Token){kind, lexeme, int_lit, location, NULL};
+    *token = (Token){kind, lexeme, int_lit, span, NULL};
     return token;
 }

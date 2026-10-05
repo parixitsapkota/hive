@@ -10,15 +10,15 @@ struct Keyword {
 };
 
 %%
-extrn,    EXTRN
-auto,     AUTO
-if,       IF
-else,     ELSE
-while,    WHILE
-break,    BREAK
-continue, CONTINUE
-switch,   SWITCH
-case,     CASE
-goto,     GOTO
-return,   RETURN
+extrn,    TOK_EXTRN
+auto,     TOK_AUTO
+if,       TOK_IF
+else,     TOK_ELSE
+while,    TOK_WHILE
+break,    TOK_BREAK
+continue, TOK_CONTINUE
+switch,   TOK_SWITCH
+case,     TOK_CASE
+goto,     TOK_GOTO
+return,   TOK_RETURN
 %%

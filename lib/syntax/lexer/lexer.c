@@ -7,14 +7,15 @@
 #include <string.h>
 
 #include "include/core/arena.h"
+#include "include/core/location.h"
 #include "include/syntax/lexer/keywords.h"
 #include "include/syntax/lexer/lexer.h"
-#include "include/syntax/lexer/location.h"
 #include "include/syntax/lexer/tokens.h"
 
 struct Lexer {
+    bool had_error;
     // buffer file name
-    const char *file;
+    const char *file_path;
     // Input buffer
     const char *buffer;
     size_t buf_len;
@@ -23,7 +24,7 @@ struct Lexer {
     size_t ln; // line number
     size_t cn; // colume number
     // String storage.
-    Arena *str_arena;
+    Arena *lexeme;
     size_t srt_data_c;
     // Token List
     Arena *tokens;
@@ -38,7 +39,6 @@ typedef struct {
     size_t offset;
     size_t ln;
     size_t cn;
-    size_t i;
 } Mark;
 
 typedef struct {
@@ -50,27 +50,25 @@ typedef struct {
 #define PUNCT(s, k) {s, sizeof(s) - 1, k}
 
 static const Punctuator punctuators[] = {
-    PUNCT("<<", BITSHIFT_L), PUNCT("<=", LESSER_EQUAL),
-    PUNCT(">>", BITSHIFT_R), PUNCT(">=", GREATER_EQUAL),
-    PUNCT("++", INC),        PUNCT("--", DEC),
-    PUNCT("!=", NOT_EQUAL),  PUNCT("==", EQUAL),
+    PUNCT("<<", TOK_BITSHIFT_L), PUNCT("<=", TOK_LESSER_EQUAL),
+    PUNCT(">>", TOK_BITSHIFT_R), PUNCT(">=", TOK_GREATER_EQUAL),
+    PUNCT("++", TOK_INC),        PUNCT("--", TOK_DEC),
+    PUNCT("!=", TOK_NOT_EQUAL),  PUNCT("==", TOK_EQUAL),
 
-    PUNCT("{", O_BRACE),     PUNCT("}", C_BRACE),
-    PUNCT("[", O_BRACKET),   PUNCT("]", C_BRACKET),
-    PUNCT("(", O_PREN),      PUNCT(")", C_PREN),
-    PUNCT(";", SEMICOLON),   PUNCT(":", COLON),
-    PUNCT("?", Q_MARK),      PUNCT("&", BIT_AND),
-    PUNCT("|", BIT_OR),      PUNCT(",", COMMA),
-    PUNCT("*", MUL),         PUNCT("/", DEV),
-    PUNCT("%", MOD),         PUNCT("+", ADD),
-    PUNCT("-", SUB),         PUNCT("!", NOT),
-    PUNCT("=", ASSIGN),      PUNCT("<", LESSER),
-    PUNCT(">", GREATER),
+    PUNCT("{", TOK_O_BRACE),     PUNCT("}", TOK_C_BRACE),
+    PUNCT("[", TOK_O_BRACKET),   PUNCT("]", TOK_C_BRACKET),
+    PUNCT("(", TOK_O_PREN),      PUNCT(")", TOK_C_PREN),
+    PUNCT(";", TOK_SEMICOLON),   PUNCT(":", TOK_COLON),
+    PUNCT("?", TOK_Q_MARK),      PUNCT("&", TOK_BIT_AND),
+    PUNCT("|", TOK_BIT_OR),      PUNCT(",", TOK_COMMA),
+    PUNCT("*", TOK_MUL),         PUNCT("/", TOK_DEV),
+    PUNCT("%", TOK_MOD),         PUNCT("+", TOK_ADD),
+    PUNCT("-", TOK_SUB),         PUNCT("!", TOK_NOT),
+    PUNCT("=", TOK_ASSIGN),      PUNCT("<", TOK_LESSER),
+    PUNCT(">", TOK_GREATER),
 };
 
 #undef PUNCT
-
-static bool had_error = false;
 
 static bool is_space(char c) { return isspace((unsigned char)c) != 0; }
 static bool is_alpha(char c) { return isalpha((unsigned char)c) != 0; }
@@ -120,28 +118,32 @@ static Mark mark(const Lexer *l) {
     return (Mark){.offset = l->i, .ln = l->ln, .cn = l->cn};
 }
 
-static void error(const Lexer *l, Mark at, const char *fmt, ...) {
+static void error(Lexer *l, Mark at, const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    fprintf(stderr, "%s:%zu:%zu: ", l->file, at.ln, at.cn);
+    fprintf(stderr, "%s:%zu:%zu: ", l->file_path, at.ln, at.cn);
     vfprintf(stderr, fmt, args);
     fputc('\n', stderr);
     va_end(args);
-    had_error = true;
+    l->had_error = true;
 }
 
 static char *substr(Lexer *l, size_t start, size_t end) {
     const size_t length = end - start;
-    char *out = arena_alloc(l->str_arena, length + 1);
+    char *out = arena_alloc(l->lexeme, length + 1);
     memcpy(out, l->buffer + start, length);
     out[length] = '\0';
     return out;
 }
 
-static void emit(Lexer *l, Mark start, TokenKind kind, const char *lexeme,
+static void emit(Lexer *l, Mark start, Mark end, TokenKind kind, const char *lexeme,
                  size_t int_lit) {
-    Token *token = new_token(l->tokens, kind, lexeme, int_lit,
-                             mark_location(l->locations, start.ln, start.cn, start.i));
+    Location *start_loc =
+        mark_location(l->locations, start.ln, start.cn, start.offset, l->file_path);
+    Location *end_loc =
+        mark_location(l->locations, end.ln, end.cn, end.offset, l->file_path);
+    Span span = (Span){start_loc, end_loc};
+    Token *token = new_token(l->tokens, kind, lexeme, int_lit, span);
 
     l->t_token->next = token;
     l->t_token = token;
@@ -164,7 +166,8 @@ static void lex_identifier(Lexer *l, Mark start) {
     const size_t length = l->i - start.offset;
     char *word = substr(l, start.offset, l->i);
     const struct Keyword *keyword = get_keyword_kind(word, length);
-    emit(l, start, keyword != NULL ? keyword->token_kind : IDENTIFIER, word, 0);
+    const Mark end = mark(l);
+    emit(l, start, end, keyword != NULL ? keyword->token_kind : TOK_IDENTIFIER, word, 0);
 }
 
 static void lex_radix_digits(Lexer *l, Mark start, bool (*is_valid)(char),
@@ -212,7 +215,8 @@ static void lex_number(Lexer *l, Mark start) {
     }
 
     char *text = substr(l, start.offset, l->i);
-    emit(l, start, INT, text, (size_t)parse_int(text));
+    const Mark end = mark(l);
+    emit(l, start, end, TOK_INT, text, (size_t)parse_int(text));
 }
 
 static size_t decode_escapes(Lexer *l, Mark start, char *s, size_t len) {
@@ -275,14 +279,16 @@ static void lex_quoted(Lexer *l, Mark start) {
     consume(l, 1);
 
     if (quote == '"') {
-        emit(l, start, STRING, text, ++l->srt_data_c);
+        const Mark end = mark(l);
+        emit(l, start, end, TOK_STRING, text, ++l->srt_data_c);
         return;
     }
 
     if (length > 2) {
         error(l, start, "Character constant too long.");
     }
-    emit(l, start, INT, text, (size_t)text[0]);
+    const Mark end = mark(l);
+    emit(l, start, end, TOK_INT, text, (size_t)text[0]);
 }
 
 static bool lex_punctuator(Lexer *l, Mark start) {
@@ -294,7 +300,8 @@ static bool lex_punctuator(Lexer *l, Mark start) {
             continue;
         }
         consume(l, p->len);
-        emit(l, start, p->kind, NULL, 0);
+        const Mark end = mark(l);
+        emit(l, start, end, p->kind, NULL, 0);
         return true;
     }
     return false;
@@ -333,9 +340,9 @@ static void scan_token(Lexer *l) {
     consume(l, 1);
 }
 
-Lexer *init_lexer(const char *file, const char *buffer, size_t buf_len) {
+Lexer *init_lexer(const char *file_path, const char *buffer, size_t buf_len) {
     Lexer *l = malloc(sizeof(Lexer));
-    l->file = file;
+    l->file_path = file_path;
     l->buffer = buffer;
     l->buf_len = buf_len;
     l->i = 0;
@@ -345,14 +352,14 @@ Lexer *init_lexer(const char *file, const char *buffer, size_t buf_len) {
     l->srt_data_c = 0;
     l->tokens = init_arena(sizeof(Token) * TOKENS_STORE);
     l->locations = init_arena(sizeof(Location) * TOKENS_STORE);
-    l->str_arena = init_arena(sizeof(char) * (buf_len * 0.75));
+    l->lexeme = init_arena(sizeof(char) * (buf_len * 0.75));
     l->t_token = NULL;
     l->tok_head = NULL;
     return l;
 }
 
 Token *lexer_lex(Lexer *l) {
-    had_error = false;
+    l->had_error = false;
 
     l->tok_head = arena_alloc(l->tokens, sizeof(Token));
     l->tok_head->next = NULL;
@@ -362,7 +369,7 @@ Token *lexer_lex(Lexer *l) {
         scan_token(l);
     }
 
-    if (had_error) {
+    if (l->had_error) {
         exit(EXIT_FAILURE);
     }
     return l->tok_head->next;
@@ -370,7 +377,7 @@ Token *lexer_lex(Lexer *l) {
 
 void free_lexer(Lexer *l) {
     free_arena(l->tokens);
-    free_arena(l->str_arena);
+    free_arena(l->lexeme);
     free_arena(l->locations);
     free(l);
 }

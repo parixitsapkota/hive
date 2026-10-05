@@ -1,13 +1,13 @@
 #pragma once
 
 #include "include/core/arena.h"
-#include "location.h"
+#include "include/core/location.h"
 
 typedef enum {
 
-#define TOKEN(tok) tok,
-#define KEYWORDS(tok, name) tok,
-#define PUNCTUATION(tok, name) tok,
+#define TOKEN(tok) TOK_##tok,
+#define KEYWORDS(tok, name) TOK_##tok,
+#define PUNCTUATION(tok, name) TOK_##tok,
 #include "tokens.def"
 #undef TOKEN
 #undef KEYWORDS
@@ -22,10 +22,10 @@ typedef struct Token {
     TokenKind kind;
     const char *lexeme;
     size_t int_lit;
-    Location *location;
+    Span span;
     struct Token *next;
 } Token;
 
 const char *token_kind_to_str(TokenKind kind);
 Token *new_token(Arena *arena, TokenKind kind, const char *lexeme, size_t int_lit,
-                 Location *location);
+                 Span span);

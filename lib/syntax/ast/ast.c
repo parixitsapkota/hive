@@ -15,13 +15,20 @@ AstNode *ast_new(Arena *arena, AstKind kind, Location *loc) {
     return node;
 }
 
-AstNode *ast_int(Arena *a, Location *loc, size_t v) {
+AstNode *ast_int_val(Arena *a, Location *loc, size_t int_val) {
     AstNode *node = ast_new(a, AST_INT, loc);
-    node->as.int_val = v;
+    node->as.int_val = int_val;
     return node;
 }
 
-AstNode *ast_ident(Arena *a, Location *loc, const char *name) {
+AstNode *ast_string_val(Arena *a, Location *loc, const char *str, size_t str_num) {
+    AstNode *node = ast_new(a, AST_STRING, loc);
+    node->as.string.str = str;
+    node->as.string.string_num = str_num;
+    return node;
+}
+
+AstNode *ast_ident_val(Arena *a, Location *loc, const char *name) {
     AstNode *node = ast_new(a, AST_IDENT, loc);
     node->as.ident.name = name;
     node->as.ident.info = NULL;
@@ -46,11 +53,25 @@ AstNode *ast_binary(Arena *a, Location *loc, AstKind kind, TokenKind op, AstNode
     return node;
 }
 
-AstNode *ast_call(Arena *a, Location *loc, AstNode *callee, AstNode *args, size_t argc) {
+AstNode *ast_call(Arena *a, Location *loc, const char *callee, AstNode *args,
+                  size_t argc) {
     AstNode *node = ast_new(a, AST_CALL, loc);
     node->as.call.callee = callee;
     node->as.call.args = args;
     node->as.call.argc = argc;
+    return node;
+}
+
+AstNode *ast_stmt(Arena *a, Location *loc, AstKind kind, AstNode *expr) {
+    AstNode *node = ast_new(a, kind, loc);
+    node->as.stmt.expr = expr;
+    return node;
+}
+
+AstNode *ast_index(Arena *a, Location *loc, AstNode *left, AstNode *index) {
+    AstNode *node = ast_new(a, AST_INDEX, loc);
+    node->as.index.base = left;
+    node->as.index.index = index;
     return node;
 }
 

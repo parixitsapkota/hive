@@ -63,7 +63,10 @@ struct AstNode {
         size_t int_val;
 
         /* AST_STRING */
-        const char *str;
+        struct {
+            const char *str;
+            size_t string_num;
+        } string;
 
         /* AST_IDENT */
         struct {
@@ -106,7 +109,7 @@ struct AstNode {
 
         /* AST_CALL: args is a linked list */
         struct {
-            AstNode *callee;
+            const char *callee;
             AstNode *args;
             size_t argc;
         } call;
@@ -149,12 +152,17 @@ struct AstNode {
 
 AstNode *ast_new(Arena *arena, AstKind kind, Location *loc);
 
-AstNode *ast_int(Arena *a, Location *loc, size_t v);
-AstNode *ast_ident(Arena *a, Location *loc, const char *name);
+AstNode *ast_int_val(Arena *a, Location *loc, size_t int_val);
+AstNode *ast_string_val(Arena *a, Location *loc, const char *str, size_t str_num);
+AstNode *ast_ident_val(Arena *a, Location *loc, const char *name);
+
 AstNode *ast_unary(Arena *a, Location *loc, TokenKind op, bool postfix, AstNode *operand);
 AstNode *ast_binary(Arena *a, Location *loc, AstKind kind, TokenKind op, AstNode *l,
                     AstNode *r);
-AstNode *ast_call(Arena *a, Location *loc, AstNode *callee, AstNode *args, size_t argc);
+AstNode *ast_stmt(Arena *a, Location *loc, AstKind kind, AstNode *expr);
+AstNode *ast_index(Arena *a, Location *loc, AstNode *left, AstNode *index);
+AstNode *ast_call(Arena *a, Location *loc, const char *callee, AstNode *args,
+                  size_t argc);
 AstNode *ast_if(Arena *a, Location *loc, AstNode *cond, AstNode *then_b, AstNode *else_b);
 AstNode *ast_while(Arena *a, Location *loc, AstNode *cond, AstNode *body);
 AstNode *ast_block(Arena *a, Location *loc, AstNode *stmts);
