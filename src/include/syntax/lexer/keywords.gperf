@@ -1,0 +1,24 @@
+%{
+#include <string.h>
+#include "tokens.h"
+%}
+
+%struct-type
+struct Keyword {
+  const char *name;
+  int token_kind;
+};
+
+%%
+extrn,    EXTRN
+auto,     AUTO
+if,       IF
+else,     ELSE
+while,    WHILE
+break,    BREAK
+continue, CONTINUE
+switch,   SWITCH
+case,     CASE
+goto,     GOTO
+return,   RETURN
+%%
