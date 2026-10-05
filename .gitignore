@@ -3,7 +3,6 @@
 .vscode/
 .zed/
 build/
-lib/
 hive*
 compile_commands.json
 

@@ -68,16 +68,17 @@ endif
 export OUTPUT
 
 all: compdb
-	@$(MAKE) -C src
+	@$(MAKE) -C lib
 
 compdb:
-	@$(MAKE) -C src compdb
+	@$(MAKE) -C lib compdb
 
 clean:
 	@printf '$(COLOR_BLUE)[-] Cleaning build artifacts...$(COLOR_RESET)\n'
 	@rm -rf build/ $(PROJECT)
 
-install: clean all
+install: MODE := release
+install: all
 	@echo "Installing $(OUTPUT)..."
 	@mkdir -p $(PREFIX)/bin
 	@cp -f $(OUTPUT) $(PREFIX)/bin

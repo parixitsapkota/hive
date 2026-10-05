@@ -1,16 +1,18 @@
-SRC_DIR := $(ROOT_DIR)/src
+LIB_DIR := $(ROOT_DIR)/lib
 TARGET  := $(ROOT_DIR)/$(OUTPUT)
 
-SRCS := $(sort $(shell find $(SRC_DIR) -name '*.c'))
-OBJS := $(patsubst $(SRC_DIR)/%.c,$(BUILD)/obj/%.o,$(SRCS))
+SRCS := $(sort $(shell find $(LIB_DIR) -name '*.c'))
+OBJS := $(patsubst $(LIB_DIR)/%.c,$(BUILD)/obj/%.o,$(SRCS))
 DEPS := $(OBJS:.o=.d)
 JSON := $(OBJS:.o=.json)
 
-ALL_CFLAGS := $(CFLAGS) -std=c99 -I$(SRC_DIR) -MMD -MP
+ALL_CFLAGS := $(CFLAGS) -std=c99 -I$(LIB_DIR) -MMD -MP
 
 KEYWORDS := include/syntax/lexer/keywords
 
-all:  $(KEYWORDS).h $(TARGET)
+all:  format $(KEYWORDS).h $(TARGET)
+
+$(OBJS): | $(KEYWORDS).h
 
 $(KEYWORDS).h: $(KEYWORDS).gperf
 	@printf "$(COLOR_MAGENTA)[gperf] %s$(COLOR_RESET)\n" $(notdir $@)
@@ -20,15 +22,24 @@ $(TARGET): $(OBJS)
 	@printf '$(COLOR_GREEN)[+] Linking %s ($(MODE))$(COLOR_RESET)\n' $(notdir $@)
 	@$(CC) $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)
 
-$(BUILD)/obj/%.o: $(SRC_DIR)/%.c
+%.c:
+	@:
+
+$(BUILD)/obj/%.o: $(LIB_DIR)/%.c
 	@mkdir -p $(dir $@)
-	@printf '$(COLOR_YELLOW)[CC] %s$(COLOR_RESET)\n' $(patsubst $(SRC_DIR)/%,%,$<)
+	@printf '$(COLOR_YELLOW)[CC] %s$(COLOR_RESET)\n' $(patsubst $(LIB_DIR)/%,%,$<)
 	@$(CC) $(ALL_CFLAGS) -MJ $(@:.o=.json) -c $< -o $@
 
 compdb: $(OBJS)
 	@{ echo '['; cat $(JSON) | sed '$$ s/,$$//'; echo ']'; } > $(ROOT_DIR)/compile_commands.json
 	@printf '$(COLOR_MAGENTA)[=] compile_commands.json ($(words $(SRCS)) files)$(COLOR_RESET)\n'
 
+format:
+	@echo -e "$(COLOR_BLUE)[clang-format] Formatting source files...$(COLOR_RESET)"
+	@clang-format -i $(SRCS)
+
 -include $(DEPS)
+
+$(DEPS): ;
 
 .PHONY: all compdb
