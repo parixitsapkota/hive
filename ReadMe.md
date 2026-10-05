@@ -86,4 +86,6 @@ make clean all PLATFORM=linux MODE=release
   </a>
 </p>
 
-**Hive** is licensed under the **Apache 2.0 License**.
+<p align="center">
+  <strong>Hive</strong> is licensed under the <strong>Apache 2.0 License</strong>.
+</p>

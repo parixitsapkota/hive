@@ -1,36 +1,69 @@
 .\" Process this file with groff -mman -Tascii hive.1
-.TH HIVE 1 "September 2026" "Hive Compiler" "User Commands"
+.TH HIVE 1 "October 2026" "Hive Compiler" "User Commands"
 .SH NAME
-hive \- compiler for the B programming language targeting amd64 assembly
+hive \- compiler for the B programming language targeting amd64
 .SH SYNOPSIS
 .B hive
-[\fB\-h\fR|\fB\-help\fR]
-[\fB\-v\fR|\fB\-version\fR]
-.BR \-i " \fIinput_file\fR"
-[\fB\-o\fR " \fIoutput_file\fR"]
-[\fB\-t\fR " \fItarget\fR"]
+[\fIOPTIONS\fR]
+.B \-i
+\fIinput_file\fR...
+.br
+.B hive
+[\fB\-h\fR|\fB\-\-help\fR]
+[\fB\-v\fR|\fB\-\-version\fR]
+.br
+.B hive
+[\fB\-c\fR]
+[\fB\-k\fR]
+[\fB\-g\fR]
+[\fB\-j\fR \fIthreads\fR]
+[\fB\-o\fR \fIoutput_file\fR]
+[\fB\-t\fR \fItarget\fR]
+.BR \-i " \fIinput_file\fR..."
 .SH DESCRIPTION
 .B Hive
-is a compiler for the \fBB programming language\fR, targeting \fBamd64\fR assembly output by default.
+is a compiler for the \fBB programming language\fR, targeting \fBamd64\fR by default.
 \fBB\fR is a typeless systems programming language originally developed by Ken Thompson and Dennis Ritchie at Bell Labs, serving as the direct predecessor to C.
 .PP
-The compiler pipeline reads input B source code, lexes and parses the AST, generates intermediate representation (IR), and outputs assembly based on the specified target (e.g., nasm x86_64).
+For each input file, the compiler lexes and parses the source into an AST, generates intermediate representation (IR), and emits assembly for the selected target backend (e.g., nasm x86_64).
+The assembly is then assembled into an object file.
+Unless \fB\-c\fR is given, the object files are linked into an executable.
+.PP
+Multiple input files may be given, and they may be compiled in parallel using \fB\-j\fR.
+Any non-option arguments are treated as additional input files.
 .SH OPTIONS
 .TP
-.BR \-h ", " \-help
+.BR \-h ", " \-\-help
 Display usage instructions and options summary, then exit.
 .TP
-.BR \-v ", " \-version
+.BR \-v ", " \-\-version
 Display version information, underlying host compiler details, build timestamp, and exit.
 .TP
-.BI \-i " file" ", " \-input " file"
-Specify the input B source file path (e.g., \fIfile.b\fR). This option is required.
+.BI \-i " file" ", " \-\-input " file"
+Specify one or more input B source files (e.g., \fImain.b foo.b bar.b\fR).
+Input files may also be given as plain arguments after the options.
+At least one input file is required.
 .TP
-.BI \-o " file" ", " \-output " file"
-Specify the output assembly file path. Defaults to \fBout.asm\fR if unspecified.
+.BI \-o " file" ", " \-\-output " file"
+Specify the output file name.
+When linking, this is the name of the resulting executable.
+When used together with \fB\-c\fR, all inputs are combined into the single object file \fIfile\fR.
 .TP
-.BI \-t " target" ", " \-target " target"
+.BR \-c ", " \-\-compile\-object
+Compile each input to its own object file and do not link.
+If \fB\-o\fR is also given, the results are combined into one object file instead.
+.TP
+.BR \-k ", " \-\-keep\-temps
+Keep the intermediate \fI.asm\fR and \fI.o\fR files and print where they are located.
+.TP
+.BR \-g ", " \-\-gen\-debug\-symbols
+Generate debug information.
+.TP
+.BI \-t " target" ", " \-\-target " target"
 Specify the output target backend. Defaults to \fBx86_64_nasm\fR if unspecified.
+.TP
+.BI \-j " threads" ", " \-\-jobs " threads"
+Number of threads used for compilation. Defaults to \fB1\fR.
 .SH ENVIRONMENT & COMPLIANCE
 .B Hive
 is primarily designed and supported on \fBLinux\fR. Support for other platforms (e.g., Windows via \fBw64-mingw32\fR) is experimental.
@@ -43,13 +76,21 @@ Successful compilation or clean exit after displaying version or help informatio
 An error occurred during execution (e.g., missing input file, invalid options, failing to open files).
 .SH EXAMPLES
 .PP
-Compile a B program \fBmain.b\fR to the default output file (\fBout.asm\fR):
+Compile and link several B sources into the executable \fBprog\fR:
 .IP
-.B hive -i main.b
+.B hive -i main.b foo.b bar.b -o prog
 .PP
-Compile \fBexample.b\fR with a specific target into custom assembly output \fBbuild/example.s\fR:
+Compile each input to its own object file, without linking:
 .IP
-.B hive -i example.b -o build/example.s -t x86_64_nasm
+.B hive -i main.b foo.b bar.b -c
+.PP
+Compile using 4 threads:
+.IP
+.B hive -i main.b foo.b bar.b -j 4
+.PP
+Compile \fBexample.b\fR with a specific target, keeping the intermediate files:
+.IP
+.B hive -i example.b -o example -t x86_64_nasm -k
 .PP
 Assemble and run using the project \fBMakefile\fR:
 .IP

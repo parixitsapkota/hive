@@ -93,17 +93,20 @@ CLEAN: clean
 # Install
 install: clean all
 	@echo "Installing $(OUTPUT)..."
-	@mkdir -p $(PREFIX)/bin
+	@mkdir -p $(PREFIX)/bin $(PREFIX)/hive/
 	@cp -f $(OUTPUT) $(PREFIX)/bin
+	@cp -r ./lib/* $(PREFIX)/hive/
 	@chmod 755 $(PREFIX)/bin/$(OUTPUT)
 	@mkdir -p $(MANPREFIX)/man1
 	@sed "s/VERSION/$(VERSION)/g" < res/$(PROJECT).1 > $(MANPREFIX)/man1/$(PROJECT).1
 	@chmod 644 $(MANPREFIX)/man1/$(PROJECT).1
-	@echo "Installed $(OUTPUT) to $(PREFIX)/bin/.."
+	@echo "Installed $(OUTPUT) to $(PREFIX)/.."
 
 # Uninstall
 uninstall:
 	@rm -f $(MANPREFIX)/man1/$(OUTPUT).1
 	@rm -f $(PREFIX)/bin/$(OUTPUT)
+	@rm -rf $(PREFIX)/hive/
+	@echo "Uninstalled $(OUTPUT) from $(PREFIX)/.."
 
 .PHONY: all clean CLEAN
