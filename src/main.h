@@ -19,7 +19,7 @@ typedef struct {
     Shi_Flag_List *names;
     char **output;
     char **target;
-    char **threads;
+    size_t *threads;
 } Options;
 
 void usage(void);

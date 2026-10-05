@@ -94,7 +94,8 @@ bool assemble(const char *asm_path, const char *obj_path, bool debug) {
     return run_command("nasm", (char *const *)argv) != 0;
 }
 
-bool link_objects(const char *exe, char (*objs)[PATH_MAX_LEN], size_t n, bool debug) {
+bool link_objects(const char *exe, char (*objs)[PATH_MAX_LEN], size_t n, bool debug,
+                  bool combine_o) {
     char **argv = malloc((n + 6) * sizeof *argv);
     if (!argv) {
         return diag_error("out of memory");
@@ -104,7 +105,11 @@ bool link_objects(const char *exe, char (*objs)[PATH_MAX_LEN], size_t n, bool de
     if (debug) {
         argv[k++] = "-g";
     }
-    argv[k++] = "-no-pie";
+    if (combine_o) {
+        argv[k++] = "-r";
+    } else {
+        argv[k++] = "-no-pie";
+    }
     argv[k++] = "-o";
     argv[k++] = (char *)exe;
     for (size_t i = 0; i < n; i++) {

@@ -12,6 +12,7 @@ typedef struct {
     bool compile_only;
     bool keep_temps;
     bool dbg;
+    bool combine_o;
     const char *output;
     Targets kind;
     size_t threads;

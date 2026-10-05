@@ -22,6 +22,7 @@ typedef struct {
     size_t n;
     bool compile_only;
     bool dbg;
+    bool combine_o;
     bool keep_temps;
     const char *output;
     Targets kind;
@@ -65,6 +66,7 @@ static bool job_init(Job *job, const JobSpec *spec) {
     job->objs = calloc(job->n + runtime_count(), sizeof *job->objs);
     job->n_objs = job->n;
     job->dbg = spec->dbg;
+    job->dbg = spec->combine_o;
     if (job->stems && job->objs) {
         return true;
     }
@@ -134,7 +136,7 @@ static bool add_runtime_object(Job *job, const char *name) {
 }
 
 static bool find_runtime(Job *job) {
-    if (job->compile_only) {
+    if (job->compile_only || job->combine_o) {
         return true;
     }
     for (size_t i = 0; i < runtime_count(); i++) {
@@ -251,7 +253,7 @@ static bool link_all(const Job *job) {
         return true;
     }
     const char *exe = job->output ? job->output : job->stems[0];
-    if (link_objects(exe, job->objs, job->n_objs, job->dbg)) {
+    if (link_objects(exe, job->objs, job->n_objs, job->dbg, job->combine_o)) {
         return true;
     }
     return diag_error("linking failed");

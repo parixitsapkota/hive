@@ -16,11 +16,13 @@
 void usage(void) {
     const char *prog = shi_flag_program_name();
     fprintf(stderr, "Usage: %s [OPTIONS] -i <input.tri>...\n", prog);
-    fprintf(stderr, "  %s -i a.tri b.tri -o prog   compile and link into executable 'prog'\n",
+    fprintf(stderr,
+            "  %s -i main.b foo.b bar.b -o prog   compile and link into executable 'prog'\n",
             prog);
-    fprintf(stderr, "  %s -i a.tri b.tri -c        compile each input to its own object file\n",
+    fprintf(stderr,
+            "  %s -i main.b foo.b bar.b -c        compile each input to its own object file\n",
             prog);
-    fprintf(stderr, "  %s -i a.tri b.tri -j 4      compile with 4 threads\n\n", prog);
+    fprintf(stderr, "  %s -i main.b foo.b bar.b -j 4      compile with 4 threads\n\n", prog);
     shi_flag_print_options(stderr);
 }
 
@@ -57,66 +59,20 @@ void define_flags(Options *o) {
     o->target = shi_flag_str("-target", "x86_64_nasm", "target backend.");
     shi_flag_set_short((void *)o->target, "t");
 
-    o->threads = shi_flag_str("-jobs", NULL, "compile threads (default: number of CPUs).");
+    o->threads = shi_flag_size("-jobs", 1, "compile threads.");
     shi_flag_set_short((void *)o->threads, "j");
-}
-
-static char **expand_inputs(int argc, char **argv, int *out_argc) {
-    char **v = malloc((2 * (size_t)argc + 1) * sizeof *v);
-    if (!v) {
-        return NULL;
-    }
-    int n = 0;
-    bool in_list = false;
-    v[n++] = argv[0];
-    for (int i = 1; i < argc; i++) {
-        const char *a = argv[i];
-        if (strcmp(a, "-i") == 0 || strcmp(a, "--input") == 0) {
-            in_list = true;
-            continue;
-        }
-        if (in_list && a[0] != '-') {
-            v[n++] = "-i";
-            v[n++] = argv[i];
-            continue;
-        }
-        in_list = false;
-        v[n++] = argv[i];
-    }
-    v[n] = NULL;
-    *out_argc = n;
-    return v;
 }
 
 static bool check_options(const Options *o) {
     if (o->names->count == 0) {
         diag_error("No input file provided");
-        usage();
-        return false;
+        return diag_error("try -h/--help flag to get help.");
     }
-    if (*o->compile && *o->output) {
-        return diag_error("-o/--output cannot be used together with -c");
-    }
-    return true;
-}
-
-static bool parse_threads(const char *text, size_t *out) {
-    if (!text) {
-        *out = 0;
-        return true;
-    }
-    char *end = NULL;
-    errno = 0;
-    long v = strtol(text, &end, 10);
-    if (errno != 0 || end == text || *end != '\0' || v < 1 || v > MAX_THREADS_FLAG) {
-        return diag_error("invalid thread count '%s' (expected 1-%d)", text, MAX_THREADS_FLAG);
-    }
-    *out = (size_t)v;
     return true;
 }
 
 bool options_to_spec(const Options *o, JobSpec *spec) {
-    if (!check_options(o) || !parse_threads(*o->threads, &spec->threads)) {
+    if (!check_options(o)) {
         return false;
     }
     spec->inputs = (const char *const *)o->names->items;
@@ -125,6 +81,9 @@ bool options_to_spec(const Options *o, JobSpec *spec) {
     spec->keep_temps = *o->keep_temps;
     spec->output = *o->output;
     spec->dbg = *o->dbg;
+    spec->combine_o = *o->compile && *o->output;
+    *o->compile = !spec->combine_o;
+    spec->threads = *o->threads;
     spec->kind = target_string_to_kind(*o->target);
     return true;
 }
@@ -133,25 +92,24 @@ int main(int argc, char *argv[]) {
     Options opts;
     define_flags(&opts);
 
-    int new_argc = 0;
-    char **new_argv = expand_inputs(argc, argv, &new_argc);
-    if (!new_argv) {
-        fprintf(stderr, "out of memory\n");
-        return 1;
-    }
-
-    if (!shi_flag_parse(new_argc, new_argv)) {
-        shi_flag_print_error(stderr);
-        usage();
-        return 1;
+    int ac = argc;
+    char **av = argv;
+    for (;;) {
+        if (!shi_flag_parse(ac, av)) {
+            shi_flag_print_error(stderr);
+            usage();
+            return 1;
+        }
+        int rest = shi_flag_rest_argc();
+        if (rest == 0) {
+            break;
+        }
+        char **rest_argv = shi_flag_rest_argv();
+        shi_flag_list_append(const char *, opts.names, rest_argv[0]);
+        ac = rest - 1;
+        av = rest_argv + 1;
     }
     diag_init(shi_flag_program_name());
-
-    int rest = shi_flag_rest_argc();
-    char **rest_argv = shi_flag_rest_argv();
-    for (int i = 0; i < rest; i++) {
-        shi_flag_list_append(const char *, opts.names, rest_argv[i]);
-    }
 
     if (*opts.help) {
         usage();
