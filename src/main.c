@@ -48,11 +48,10 @@ void define_flags(Options *o) {
     o->dbg = shi_flag_bool("-gen-debug-symbols", false, "generates debug info.");
     shi_flag_set_short(o->dbg, "g");
 
-    static char *mut_names = NULL;
-    o->names = shi_flag_list_mut("-input", mut_names);
+    o->names = shi_flag_list("-input", "input file(s) name(s).");
     shi_flag_set_short((void *)o->names, "i");
 
-    o->output = shi_flag_str("-output", NULL, "output executable name (not allowed with -c).");
+    o->output = shi_flag_str("-output", NULL, "output file name.");
     shi_flag_set_short((void *)o->output, "o");
 
     o->target = shi_flag_str("-target", "x86_64_nasm", "target backend.");
@@ -60,6 +59,33 @@ void define_flags(Options *o) {
 
     o->threads = shi_flag_str("-jobs", NULL, "compile threads (default: number of CPUs).");
     shi_flag_set_short((void *)o->threads, "j");
+}
+
+static char **expand_inputs(int argc, char **argv, int *out_argc) {
+    char **v = malloc((2 * (size_t)argc + 1) * sizeof *v);
+    if (!v) {
+        return NULL;
+    }
+    int n = 0;
+    bool in_list = false;
+    v[n++] = argv[0];
+    for (int i = 1; i < argc; i++) {
+        const char *a = argv[i];
+        if (strcmp(a, "-i") == 0 || strcmp(a, "--input") == 0) {
+            in_list = true;
+            continue;
+        }
+        if (in_list && a[0] != '-') {
+            v[n++] = "-i";
+            v[n++] = argv[i];
+            continue;
+        }
+        in_list = false;
+        v[n++] = argv[i];
+    }
+    v[n] = NULL;
+    *out_argc = n;
+    return v;
 }
 
 static bool check_options(const Options *o) {
@@ -74,7 +100,6 @@ static bool check_options(const Options *o) {
     return true;
 }
 
-/* NULL -> 0 (auto). Otherwise a whole number >= 1. */
 static bool parse_threads(const char *text, size_t *out) {
     if (!text) {
         *out = 0;
@@ -108,12 +133,25 @@ int main(int argc, char *argv[]) {
     Options opts;
     define_flags(&opts);
 
-    if (!shi_flag_parse(argc, argv)) {
+    int new_argc = 0;
+    char **new_argv = expand_inputs(argc, argv, &new_argc);
+    if (!new_argv) {
+        fprintf(stderr, "out of memory\n");
+        return 1;
+    }
+
+    if (!shi_flag_parse(new_argc, new_argv)) {
         shi_flag_print_error(stderr);
         usage();
         return 1;
     }
     diag_init(shi_flag_program_name());
+
+    int rest = shi_flag_rest_argc();
+    char **rest_argv = shi_flag_rest_argv();
+    for (int i = 0; i < rest; i++) {
+        shi_flag_list_append(const char *, opts.names, rest_argv[i]);
+    }
 
     if (*opts.help) {
         usage();

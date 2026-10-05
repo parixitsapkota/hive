@@ -16,7 +16,7 @@ typedef struct {
     bool *compile;
     bool *keep_temps;
     bool *dbg;
-    Shi_Flag_List_Mut *names;
+    Shi_Flag_List *names;
     char **output;
     char **target;
     char **threads;
