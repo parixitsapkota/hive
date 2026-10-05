@@ -2,9 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "include/core/arena.h"
 #include "include/core/file.h"
 #include "include/core/info.h"
+#include "include/syntax/ast/ast.h"
 #include "include/syntax/lexer/lexer.h"
+#include "include/syntax/lexer/tokens.h"
 
 int main(const int argc, const char *const *argv) {
     if (argc != 2) {
@@ -32,6 +35,19 @@ int main(const int argc, const char *const *argv) {
     }
 
     free_lexer(lexer_context);
+
+    Arena *a = init_arena(1024 * sizeof(AstNode));
+
+    AstNode *left = ast_int_val(a, NULL, 34);
+    AstNode *right = ast_int_val(a, NULL, 35);
+    AstNode *expr = ast_binary(a, NULL, AST_BINARY, TOK_ADD, left, right);
+    AstNode *ret = ast_stmt(a, NULL, AST_RETURN, expr);
+    AstNode *body = ast_block(a, NULL, ret);
+    AstNode *root = ast_function(a, NULL, "func", NULL, 0, body);
+
+    print_ast(root);
+
+    free_arena(a);
 
     return 0;
 }

@@ -168,3 +168,5 @@ AstNode *ast_while(Arena *a, Location *loc, AstNode *cond, AstNode *body);
 AstNode *ast_block(Arena *a, Location *loc, AstNode *stmts);
 AstNode *ast_function(Arena *a, Location *loc, const char *name, AstNode *params,
                       size_t nparams, AstNode *body);
+
+void print_ast(AstNode *root);
