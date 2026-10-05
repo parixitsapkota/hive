@@ -1,0 +1,162 @@
+#pragma once
+
+#include <stdbool.h>
+#include <stddef.h>
+
+#include "include/core/arena.h"
+#include "include/syntax/lexer/tokens.h"
+
+typedef struct AstNode AstNode;
+
+typedef enum {
+    VAR_AUTO,
+    VAR_GLOBAL,
+    VAR_PARAM,
+    VAR_EXTRN,
+    VAR_LABEL,
+} VarKind;
+
+typedef struct {
+    VarKind kind;
+} VarInfo;
+
+typedef enum {
+    /* expressions */
+    AST_INT,
+    AST_CHAR,
+    AST_STRING,
+    AST_IDENT,
+    AST_UNARY,
+    AST_BINARY,
+    AST_ASSIGN,
+    AST_TERNARY,
+    AST_INDEX,
+    AST_CALL,
+
+    /* statements */
+    AST_BLOCK,
+    AST_EXPR_STMT,
+    AST_NULL_STMT,
+    AST_IF,
+    AST_WHILE,
+    AST_SWITCH,
+    AST_CASE,
+    AST_BREAK,
+    AST_RETURN,
+    AST_GOTO,
+    AST_LABEL,
+
+    /* declarations */
+    AST_AUTO,
+    AST_EXTRN,
+    AST_GLOBAL_DECL,
+    AST_FUNCTION,
+} AstKind;
+
+struct AstNode {
+    AstKind kind;
+    Location *loc;
+    AstNode *next;
+
+    union {
+        /* AST_INT, AST_CHAR */
+        size_t int_val;
+
+        /* AST_STRING */
+        const char *str;
+
+        /* AST_IDENT */
+        struct {
+            const char *name;
+            VarInfo *info;
+        } ident;
+
+        /* AST_UNARY */
+        struct {
+            TokenKind op;
+            bool postfix;
+            AstNode *operand;
+        } unary;
+
+        /* AST_BINARY, AST_ASSIGN */
+        struct {
+            TokenKind op;
+            AstNode *lhs;
+            AstNode *rhs;
+        } binary;
+
+        /* AST_IF, AST_TERNARY */
+        struct {
+            AstNode *cond;
+            AstNode *then_b;
+            AstNode *else_b;
+        } cond;
+
+        /* AST_WHILE, AST_SWITCH, AST_CASE (expr is a constant for case) */
+        struct {
+            AstNode *expr;
+            AstNode *body;
+        } ctl;
+
+        /* AST_INDEX */
+        struct {
+            AstNode *base;
+            AstNode *index;
+        } index;
+
+        /* AST_CALL: args is a linked list */
+        struct {
+            AstNode *callee;
+            AstNode *args;
+            size_t argc;
+        } call;
+
+        /* AST_BLOCK: stmts is a linked list */
+        struct {
+            AstNode *stmts;
+        } block;
+
+        /* AST_EXPR_STMT, AST_RETURN (expr may be NULL), AST_GOTO */
+        struct {
+            AstNode *expr;
+        } stmt;
+
+        /* AST_LABEL */
+        struct {
+            const char *name;
+            AstNode *stmt;
+        } label;
+
+        /* AST_AUTO, AST_EXTRN, AST_GLOBAL_DECL
+         * multiple decleration are a linked list */
+        struct {
+            const char *name;
+            bool is_vec;
+            size_t size;
+            AstNode *init;
+            VarInfo *info;
+        } decl;
+
+        /* AST_FUNCTION */
+        struct {
+            const char *name;
+            AstNode *params;
+            size_t nparams;
+            AstNode *body;
+        } func;
+    } as;
+};
+
+AstNode *ast_new(Arena *arena, AstKind kind, Location *loc);
+
+AstNode *ast_int(Arena *a, Location *loc, size_t v);
+AstNode *ast_ident(Arena *a, Location *loc, const char *name);
+AstNode *ast_unary(Arena *a, Location *loc, TokenKind op, bool postfix, AstNode *operand);
+AstNode *ast_binary(Arena *a, Location *loc, AstKind kind, TokenKind op, AstNode *l,
+                    AstNode *r);
+AstNode *ast_call(Arena *a, Location *loc, AstNode *callee, AstNode *args, size_t argc);
+AstNode *ast_if(Arena *a, Location *loc, AstNode *cond, AstNode *then_b, AstNode *else_b);
+AstNode *ast_while(Arena *a, Location *loc, AstNode *cond, AstNode *body);
+AstNode *ast_block(Arena *a, Location *loc, AstNode *stmts);
+AstNode *ast_function(Arena *a, Location *loc, const char *name, AstNode *params,
+                      size_t nparams, AstNode *body);

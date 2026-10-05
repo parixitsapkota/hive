@@ -69,16 +69,6 @@ make clean all PLATFORM=linux MODE=release
 
 ---
 
-## Roadmap
-
-- [ ] Improved error reporting and diagnostics ( with historical errors. )
-- [ ] Add switch statements.
-- [ ] Add break statements in loops.
-- [ ] Add continue statements in loops.
-- [ ] Add syntactic sugar (e.g., `=+`, `=-`, `=*`)
-
----
-
 <p align="center">
   <a href="https://github.com/parixitsapkota/hive/blob/main/LICENSE">
     <img alt="GitHub License" src="https://img.shields.io/github/license/parixitsapkota/hive?colorA=141c1e&colorB=cc9694&style=for-the-badge&logo=apache&logoColor=cc9694">

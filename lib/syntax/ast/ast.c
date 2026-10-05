@@ -1,0 +1,87 @@
+#include <stddef.h>
+
+#include "include/core/arena.h"
+#include "include/syntax/ast/ast.h"
+
+VarInfo *var_info(Arena *arena, VarKind kind) {
+    VarInfo *var = arena_alloc(arena, sizeof(VarInfo));
+    *var = (VarInfo){.kind = kind};
+    return var;
+}
+
+AstNode *ast_new(Arena *arena, AstKind kind, Location *loc) {
+    AstNode *node = arena_alloc(arena, sizeof(AstNode));
+    *node = (AstNode){.kind = kind, .loc = loc};
+    return node;
+}
+
+AstNode *ast_int(Arena *a, Location *loc, size_t v) {
+    AstNode *node = ast_new(a, AST_INT, loc);
+    node->as.int_val = v;
+    return node;
+}
+
+AstNode *ast_ident(Arena *a, Location *loc, const char *name) {
+    AstNode *node = ast_new(a, AST_IDENT, loc);
+    node->as.ident.name = name;
+    node->as.ident.info = NULL;
+    return node;
+}
+
+AstNode *ast_unary(Arena *a, Location *loc, TokenKind op, bool postfix,
+                   AstNode *operand) {
+    AstNode *node = ast_new(a, AST_UNARY, loc);
+    node->as.unary.op = op;
+    node->as.unary.postfix = postfix;
+    node->as.unary.operand = operand;
+    return node;
+}
+
+AstNode *ast_binary(Arena *a, Location *loc, AstKind kind, TokenKind op, AstNode *l,
+                    AstNode *r) {
+    AstNode *node = ast_new(a, kind, loc);
+    node->as.binary.op = op;
+    node->as.binary.lhs = l;
+    node->as.binary.rhs = r;
+    return node;
+}
+
+AstNode *ast_call(Arena *a, Location *loc, AstNode *callee, AstNode *args, size_t argc) {
+    AstNode *node = ast_new(a, AST_CALL, loc);
+    node->as.call.callee = callee;
+    node->as.call.args = args;
+    node->as.call.argc = argc;
+    return node;
+}
+
+AstNode *ast_if(Arena *a, Location *loc, AstNode *cond, AstNode *then_b,
+                AstNode *else_b) {
+    AstNode *node = ast_new(a, AST_IF, loc);
+    node->as.cond.cond = cond;
+    node->as.cond.then_b = then_b;
+    node->as.cond.else_b = else_b;
+    return node;
+}
+
+AstNode *ast_while(Arena *a, Location *loc, AstNode *cond, AstNode *body) {
+    AstNode *node = ast_new(a, AST_WHILE, loc);
+    node->as.ctl.expr = cond;
+    node->as.ctl.body = body;
+    return node;
+}
+
+AstNode *ast_block(Arena *a, Location *loc, AstNode *stmts) {
+    AstNode *node = ast_new(a, AST_BLOCK, loc);
+    node->as.block.stmts = stmts;
+    return node;
+}
+
+AstNode *ast_function(Arena *a, Location *loc, const char *name, AstNode *params,
+                      size_t nparams, AstNode *body) {
+    AstNode *node = ast_new(a, AST_FUNCTION, loc);
+    node->as.func.name = name;
+    node->as.func.params = params;
+    node->as.func.nparams = nparams;
+    node->as.func.body = body;
+    return node;
+}
