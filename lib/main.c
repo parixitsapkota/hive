@@ -16,7 +16,7 @@ int main(const int argc, const char *const *argv) {
     }
     const char *file_name = argv[1];
 
-    FILE *file = fopen(file_name, "rb");
+    FILE *file = openf(file_name, 1);
     size_t buf_len = 0;
     const char *buffer = readf(file, &buf_len);
 

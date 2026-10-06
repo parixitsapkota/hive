@@ -1,5 +1,16 @@
+#include "include/core/file.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+FILE *openf(const char *path, uint8_t mode) {
+    const char *mode_str = mode ? "rb" : "wa";
+    FILE *f = fopen(path, mode_str);
+    if (!f) {
+        fputs("File not found!\n", stderr);
+        abort();
+    }
+    return f;
+}
 
 char *readf(FILE *file, size_t *bytes) {
     fseek(file, 0, SEEK_END);
