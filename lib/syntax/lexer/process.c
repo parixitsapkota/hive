@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "include/core/mem.h"
 #include "include/syntax/lexer/keywords.h"
 #include "include/syntax/lexer/process.h"
 
@@ -71,14 +72,6 @@ void error(Lexer *l, Mark at, const char *fmt, ...) {
     l->had_error = true;
 }
 
-static char *substr(Lexer *l, size_t start, size_t end) {
-    const size_t length = end - start;
-    char *out = arena_alloc(l->lexeme, length + 1);
-    memcpy(out, l->buffer + start, length);
-    out[length] = '\0';
-    return out;
-}
-
 static void emit(Lexer *l, Mark start, Mark end, TokenKind kind, const char *lexeme,
                  size_t int_lit) {
     Location *start_loc = mark_location(l->locations, start.ln, start.cn, start.offset);
@@ -105,7 +98,7 @@ void skip_block_comment(Lexer *l, Mark start) {
 void lex_identifier(Lexer *l, Mark start) {
     consume_while(l, is_ident_char);
     const size_t length = l->i - start.offset;
-    char *word = substr(l, start.offset, l->i);
+    char *word = substr(l->lexeme, l->buffer, l->i, length);
     const struct Keyword *keyword = get_keyword_kind(word, length);
     const Mark end = mark(l);
     emit(l, start, end, keyword != NULL ? keyword->token_kind : IDENTIFIER_LIT, word, 0);
@@ -155,7 +148,7 @@ void lex_number(Lexer *l, Mark start) {
         consume_while(l, is_ident_char);
     }
 
-    char *text = substr(l, start.offset, l->i);
+    char *text = substr(l->lexeme, l->buffer, l->i, l->i - start.offset);
     const Mark end = mark(l);
     emit(l, start, end, INT_LIT, text, (size_t)parse_int(text));
 }
@@ -215,7 +208,7 @@ void lex_quoted(Lexer *l, Mark start) {
         return;
     }
 
-    char *text = substr(l, body, l->i);
+    char *text = substr(l->lexeme, l->buffer, body, l->i - start.offset);
     const size_t length = decode_escapes(l, start, text, l->i - body);
     consume(l, 1);
 
