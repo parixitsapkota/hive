@@ -20,7 +20,7 @@ MAKEFLAGS += --no-print-directory
 
 DEBUG   := -fsanitize=address -g -O0
 RELEASE := -O3
-CFLAGS  := -Isrc -Wall -Wextra -Werror
+CFLAGS  := -Wall -Wextra -Werror
 LDFLAGS :=
 export PROJECT CC DEBUG RELEASE CFLAGS LDFLAGS
 

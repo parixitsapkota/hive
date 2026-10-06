@@ -80,12 +80,6 @@ static bool is_ident_char(char c) { return isalnum((unsigned char)c) != 0 || c =
 
 static bool is_at_end(const Lexer *l) { return l->i >= l->buf_len; }
 
-// static Location *location(Lexer *l, size_t ln, size_t cn) {
-//     Location *location = arena_alloc(l->locations, sizeof(Location));
-//     *location = (Location){.ln = ln, .cn = cn};
-//     return location;
-// }
-
 static char peek(const Lexer *l, size_t offset) {
     if (l->i + offset >= l->buf_len) {
         return '\0';
@@ -167,7 +161,7 @@ static void lex_identifier(Lexer *l, Mark start) {
     char *word = substr(l, start.offset, l->i);
     const struct Keyword *keyword = get_keyword_kind(word, length);
     const Mark end = mark(l);
-    emit(l, start, end, keyword != NULL ? keyword->token_kind : TOK_IDENTIFIER, word, 0);
+    emit(l, start, end, keyword != NULL ? keyword->token_kind : IDENTIFIER_LIT, word, 0);
 }
 
 static void lex_radix_digits(Lexer *l, Mark start, bool (*is_valid)(char),
@@ -216,7 +210,7 @@ static void lex_number(Lexer *l, Mark start) {
 
     char *text = substr(l, start.offset, l->i);
     const Mark end = mark(l);
-    emit(l, start, end, TOK_INT, text, (size_t)parse_int(text));
+    emit(l, start, end, INT_LIT, text, (size_t)parse_int(text));
 }
 
 static size_t decode_escapes(Lexer *l, Mark start, char *s, size_t len) {
@@ -280,7 +274,7 @@ static void lex_quoted(Lexer *l, Mark start) {
 
     if (quote == '"') {
         const Mark end = mark(l);
-        emit(l, start, end, TOK_STRING, text, ++l->srt_data_c);
+        emit(l, start, end, STRING_LIT, text, ++l->srt_data_c);
         return;
     }
 
@@ -288,7 +282,7 @@ static void lex_quoted(Lexer *l, Mark start) {
         error(l, start, "Character constant too long.");
     }
     const Mark end = mark(l);
-    emit(l, start, end, TOK_INT, text, (size_t)text[0]);
+    emit(l, start, end, INT_LIT, text, (size_t)text[0]);
 }
 
 static bool lex_punctuator(Lexer *l, Mark start) {

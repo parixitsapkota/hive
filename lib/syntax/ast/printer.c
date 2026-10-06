@@ -1,6 +1,9 @@
 #include <stdio.h>
 
+#include "include/core/info.h"
+#include "include/syntax/ast/ast.h"
 #include "include/syntax/ast/visitor.h"
+#include "include/syntax/lexer/tokens.h"
 
 static const char *ast_kind_to_string(AstKind kind) {
     static const char *const names[] = {
@@ -45,15 +48,31 @@ static const char *ast_kind_to_string(AstKind kind) {
 
 static VisitAction ast_printer(AstNode *node, const VisitContext *ctx) {
     for (size_t i = 0; i < ctx->depth; i++) {
-        printf("  ");
+        printf("   ");
     }
 
     switch (node->kind) {
-    case AST_INT: printf("AST_INT: %zu\n", node->as.int_val); break;
-    case AST_IDENT: printf("AST_IDENT: %s\n", node->as.ident.name); break;
-    case AST_BINARY: printf("AST_BINARY (op: %d)\n", node->as.binary.op); break;
-    case AST_FUNCTION: printf("AST_FUNCTION: %s\n", node->as.func.name); break;
-    default: printf("ASTNode (kind: %s)\n", ast_kind_to_string(node->kind)); break;
+    case AST_INT:
+        printf(FG_BLACK "%s: " FG_GREEN "\"%zu\"\n" RESET, ast_kind_to_string(node->kind),
+               node->as.int_val);
+        break;
+    case AST_IDENT:
+        printf(FG_BLACK "%s: " FG_GREEN "\"%s\"\n" RESET, ast_kind_to_string(node->kind),
+               node->as.ident.name);
+        break;
+    case AST_STRING:
+        printf(FG_BLACK "%s: " FG_GREEN "\"%s\"\n" RESET, ast_kind_to_string(node->kind),
+               node->as.string.str);
+        break;
+    case AST_BINARY:
+        printf(FG_BLACK "%s: " FG_YELLOW "op" FG_BLACK " : " FG_RED "`%s`\n" RESET,
+               ast_kind_to_string(node->kind), token_kind_to_str(node->as.binary.op));
+        break;
+    case AST_FUNCTION:
+        printf(FG_BLACK "%s: " FG_GREEN "\"%s\"\n" RESET, ast_kind_to_string(node->kind),
+               node->as.func.name);
+        break;
+    default: printf(FG_RED "%s\n" RESET, ast_kind_to_string(node->kind)); break;
     }
 
     return VISIT_CONTINUE;

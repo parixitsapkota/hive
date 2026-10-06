@@ -5,14 +5,14 @@
 
 const char *token_kind_to_str(TokenKind kind) {
     switch (kind) {
-#define TOKEN(tok)                                                                       \
-    case TOK_##tok: return #tok;
+#define LITERAL(tok)                                                                     \
+    case tok##_LIT: return #tok;
 #define KEYWORDS(tok, name)                                                              \
     case TOK_##tok: return name;
 #define PUNCTUATION(tok, name)                                                           \
     case TOK_##tok: return name;
 #include "include/syntax/lexer/tokens.def"
-#undef TOKEN
+#undef LITERAL
 #undef KEYWORDS
 #undef PUNCTUATION
     default: return "nil";

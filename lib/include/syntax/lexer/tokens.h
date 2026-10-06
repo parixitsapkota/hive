@@ -5,11 +5,11 @@
 
 typedef enum {
 
-#define TOKEN(tok) TOK_##tok,
+#define LITERAL(tok) tok##_LIT,
 #define KEYWORDS(tok, name) TOK_##tok,
 #define PUNCTUATION(tok, name) TOK_##tok,
 #include "tokens.def"
-#undef TOKEN
+#undef LITERAL
 #undef KEYWORDS
 #undef PUNCTUATION
 
@@ -27,5 +27,8 @@ typedef struct Token {
 } Token;
 
 const char *token_kind_to_str(TokenKind kind);
+
 Token *new_token(Arena *arena, TokenKind kind, const char *lexeme, size_t int_lit,
                  Span span);
+
+void print_tokens(const char *file_name, const Token *tokens);
