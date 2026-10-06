@@ -51,7 +51,7 @@ char peek(const Lexer *l, size_t offset);
 void consume(Lexer *l, size_t count);
 Mark mark(const Lexer *l);
 
-void error(Lexer *l, Mark at, const char *fmt, ...);
+void l_error(Lexer *l, Mark at, const char *fmt, ...);
 
 void skip_block_comment(Lexer *l, Mark start);
 void lex_identifier(Lexer *l, Mark start);

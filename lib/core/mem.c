@@ -3,22 +3,19 @@
 #include <string.h>
 
 #include "include/core/arena.h"
+#include "include/core/diags.h"
 
 void *xmalloc(size_t n) {
     void *p = malloc(n ? n : 1);
-    if (!p) {
-        fputs("Out of memory\n", stderr);
-        abort();
-    }
+    if (!p) fatal("Out of memory");
+
     return p;
 }
 
 void *xrealloc(void *old, size_t n) {
     void *p = realloc(old, n ? n : 1);
-    if (!p) {
-        fputs("Out of memory\n", stderr);
-        abort();
-    }
+    if (!p) fatal("Out of memory");
+
     return p;
 }
 

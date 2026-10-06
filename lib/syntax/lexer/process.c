@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "include/core/diags.h"
 #include "include/core/mem.h"
 #include "include/syntax/lexer/keywords.h"
 #include "include/syntax/lexer/process.h"
@@ -62,12 +63,11 @@ static size_t consume_while(Lexer *l, bool (*pred)(char)) {
 
 Mark mark(const Lexer *l) { return (Mark){.offset = l->i, .ln = l->ln, .cn = l->cn}; }
 
-void error(Lexer *l, Mark at, const char *fmt, ...) {
+void l_error(Lexer *l, Mark at, const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
     fprintf(stderr, "%s:%zu:%zu: ", l->file_path, at.ln, at.cn);
-    vfprintf(stderr, fmt, args);
-    fputc('\n', stderr);
+    error(fmt, args);
     va_end(args);
     l->had_error = true;
 }
@@ -92,7 +92,7 @@ void skip_block_comment(Lexer *l, Mark start) {
         }
         consume(l, 1);
     }
-    error(l, start, "Unterminated block comment.");
+    l_error(l, start, "Unterminated block comment.");
 }
 
 void lex_identifier(Lexer *l, Mark start) {
@@ -108,7 +108,7 @@ static void lex_radix_digits(Lexer *l, Mark start, bool (*is_valid)(char),
                              const char *empty_msg) {
     consume(l, 2);
     if (consume_while(l, is_valid) == 0) {
-        error(l, start, "%s", empty_msg);
+        l_error(l, start, "%s", empty_msg);
     }
 }
 
@@ -117,7 +117,7 @@ static void lex_octal_digits(Lexer *l) {
     while (is_digit(peek(l, 0))) {
         const char c = peek(l, 0);
         if (!is_octal(c)) {
-            error(l, mark(l), "Invalid digit '%c' in octal constant.", c);
+            l_error(l, mark(l), "Invalid digit '%c' in octal constant.", c);
         }
         consume(l, 1);
     }
@@ -144,7 +144,7 @@ void lex_number(Lexer *l, Mark start) {
     }
 
     if (is_ident_char(peek(l, 0))) {
-        error(l, mark(l), "Invalid character in numeric constant.");
+        l_error(l, mark(l), "Invalid character in numeric constant.");
         consume_while(l, is_ident_char);
     }
 
@@ -171,7 +171,7 @@ static size_t decode_escapes(Lexer *l, Mark start, char *s, size_t len) {
         case '"': s[w++] = '"'; break;
         case '\'': s[w++] = '\''; break;
         case '*': s[w++] = '*'; break;
-        default: error(l, start, "Unknown escape sequence `*%c`", s[r]); break;
+        default: l_error(l, start, "Unknown escape sequence `*%c`", s[r]); break;
         }
         ++r;
     }
@@ -202,9 +202,9 @@ void lex_quoted(Lexer *l, Mark start) {
     const size_t body = l->i;
 
     if (!consume_until_quote(l, quote)) {
-        error(l, start,
-              quote == '"' ? "Unterminated string literal."
-                           : "Unterminated character constant.");
+        l_error(l, start,
+                quote == '"' ? "Unterminated string literal."
+                             : "Unterminated character constant.");
         return;
     }
 
@@ -219,7 +219,7 @@ void lex_quoted(Lexer *l, Mark start) {
     }
 
     if (length > 2) {
-        error(l, start, "Character constant too long.");
+        l_error(l, start, "Character constant too long.");
     }
     const Mark end = mark(l);
     emit(l, start, end, INT_LIT, text, (size_t)text[0]);

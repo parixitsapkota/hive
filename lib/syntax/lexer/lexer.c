@@ -54,7 +54,7 @@ static void scan_token(Lexer *l) {
         return;
     }
 
-    error(l, start, "Unexpected character '%c'.", c);
+    l_error(l, start, "Unexpected character '%c'.", c);
     consume(l, 1);
 }
 
