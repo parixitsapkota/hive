@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "include/core/arena.h"
 #include "include/core/file.h"
 #include "include/syntax/ast/ast.h"
 #include "include/syntax/lexer/lexer.h"
@@ -23,7 +22,7 @@ int main(const int argc, const char *const *argv) {
 
     Lexer *lexer_context = init_lexer(file_name, buffer, buf_len);
     Token *tokens = lexer_lex(lexer_context);
-    Parser *parser_context = init_parser(tokens);
+    Parser *parser_context = init_parser(file_name, tokens);
     AstNode *root_node = parser_parse(parser_context);
     print_ast(root_node);
     free_parser(parser_context);

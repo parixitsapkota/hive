@@ -5,6 +5,7 @@
 #include "include/syntax/parser/parser.h"
 
 struct Parser {
+    const char *file_name;
     // Token
     Token *tokens;
     Token *tok_tail;
@@ -19,7 +20,7 @@ Token *current(Parser *p);
 
 Token *next(Parser *p);
 
-Token *consume(Parser *p);
+Token *pconsume(Parser *p);
 
 bool expect_and_consume(Parser *p, TokenKind kind);
 

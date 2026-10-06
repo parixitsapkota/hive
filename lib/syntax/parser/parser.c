@@ -7,10 +7,11 @@
 #include "include/syntax/parser/parser.h"
 #include "include/syntax/parser/process.h"
 
-Parser *init_parser(Token *tokens) {
+Parser *init_parser(const char *file_name, Token *tokens) {
     Parser *p = malloc(sizeof(Parser));
     *p = (Parser){0};
     p->tokens = tokens;
+    p->file_name = file_name;
     p->tok_tail = tokens;
     p->ast = init_arena(1024 * (sizeof(AstNode)));
     return p;
@@ -21,7 +22,7 @@ AstNode *parser_parse(Parser *p) {
         return NULL;
     }
 
-    print_tokens(p->tokens->span.start->file_path, p->tokens);
+    print_tokens(p->file_name, p->tokens);
 
     AstNode *node = parse_atom(p);
 

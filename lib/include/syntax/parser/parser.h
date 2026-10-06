@@ -5,7 +5,7 @@
 
 typedef struct Parser Parser;
 
-Parser *init_parser(Token *tokens);
+Parser *init_parser(const char *file_name, Token *tokens);
 
 AstNode *parser_parse(Parser *p);
 
