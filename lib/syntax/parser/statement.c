@@ -1,5 +1,6 @@
 #include <stddef.h>
 
+#include "include/core/location.h"
 #include "include/syntax/ast/ast.h"
 #include "include/syntax/lexer/tokens.h"
 #include "include/syntax/parser/expression.h"
@@ -9,10 +10,12 @@
 static AstNode *parse_statement(Parser *p);
 
 static AstNode *parse_return(Parser *p) {
-    pconsume(p);
+    Span start = pconsume(p)->span;
     AstNode *expr = parse_expr(p, PREC_NONE);
+    Span end = current(p)->span;
+    Span span = span_merge(start, end);
     expect_and_consume(p, TOK_SEMICOLON);
-    return ast_stmt(p->ast, NULL, AST_RETURN, expr);
+    return ast_stmt(p->ast, span, AST_RETURN, expr);
 }
 
 static AstNode *parse_body(Parser *p) {
@@ -48,7 +51,8 @@ static AstNode *parse_statement(Parser *p) {
 }
 
 AstNode *parse_func(Parser *p) {
-    const char *name = pconsume(p)->lexeme;
+    Token *tok = pconsume(p);
+    const char *name = tok->lexeme;
 
     AstNode *first_param = NULL;
     AstNode *last_param = NULL;
@@ -56,8 +60,9 @@ AstNode *parse_func(Parser *p) {
 
     expect_and_consume(p, TOK_O_PREN);
     while (!is_kind(p, TOK_C_PREN)) {
-        const char *param_name = pconsume(p)->lexeme;
-        AstNode *param_ident = ast_ident_val(p->ast, NULL, param_name);
+        Token *param = pconsume(p);
+        const char *param_name = param->lexeme;
+        AstNode *param_ident = ast_ident_val(p->ast, param->span, param_name);
         ++paramc;
 
         if (!first_param) {
@@ -76,9 +81,11 @@ AstNode *parse_func(Parser *p) {
             break;
         }
     }
+    Span end = current(p)->span;
+    Span span = span_merge(tok->span, end);
     expect_and_consume(p, TOK_C_PREN);
 
     AstNode *body = parse_statement(p);
 
-    return ast_function(p->ast, NULL, name, first_param, paramc, body);
+    return ast_function(p->ast, span, name, first_param, paramc, body);
 }

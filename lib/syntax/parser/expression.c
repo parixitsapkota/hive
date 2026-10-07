@@ -88,10 +88,9 @@ AstNode *parse_atom(Parser *p) {
     if (is_kind_literal(tok->kind)) tok = pconsume(p);
 
     switch (tok->kind) {
-    case INT_LIT: return ast_int_val(p->ast, tok->span.start, tok->int_lit);
-    case IDENTIFIER_LIT: return ast_ident_val(p->ast, tok->span.start, tok->lexeme);
-    case STRING_LIT:
-        return ast_string_val(p->ast, tok->span.start, tok->lexeme, tok->int_lit);
+    case INT_LIT: return ast_int_val(p->ast, tok->span, tok->int_lit);
+    case IDENTIFIER_LIT: return ast_ident_val(p->ast, tok->span, tok->lexeme);
+    case STRING_LIT: return ast_string_val(p->ast, tok->span, tok->lexeme, tok->int_lit);
     default:
         return parser_error(p, "expected a literal, but got `%s`",
                             token_kind_to_str(tok->kind));
@@ -113,13 +112,15 @@ AstNode *parse_paren_expr(Parser *p) {
 }
 
 AstNode *parse_prefix(Parser *p) {
-    TokenKind op = pconsume(p)->kind;
+    Token *tok = pconsume(p);
+    TokenKind op = tok->kind;
     AstNode *node = parse_expr(p, PREC_NONE);
-    return ast_unary(p->ast, NULL, op, false, node);
+    return ast_unary(p->ast, tok->span, op, false, node);
 }
 
 AstNode *parse_call(Parser *p) {
-    const char *name = pconsume(p)->lexeme;
+    Token *tok = pconsume(p);
+    const char *name = tok->lexeme;
     expect_and_consume(p, TOK_O_PREN);
 
     size_t argc = 0;
@@ -147,10 +148,10 @@ AstNode *parse_call(Parser *p) {
             break;
         }
     }
-
+    Span span = span_merge(tok->span, current(p)->span);
     expect_and_consume(p, TOK_C_PREN);
 
-    return ast_call(p->ast, NULL, name, first_arg, argc);
+    return ast_call(p->ast, span, name, first_arg, argc);
 }
 
 AstNode *parse_primary(Parser *p) {
@@ -165,6 +166,8 @@ AstNode *parse_primary(Parser *p) {
 
 AstNode *parse_expr(Parser *p, Precedence prec) {
     if (current(p)->kind == TOK_SEMICOLON) return NULL;
+
+    Span span_start = current(p)->span;
 
     AstNode *left = parse_primary(p);
     if (!left) return NULL;
@@ -191,7 +194,9 @@ AstNode *parse_expr(Parser *p, Precedence prec) {
 
         if (!right) return NULL;
 
-        left = ast_binary(p->ast, NULL, AST_BINARY, op, left, right);
+        Span span_end = current(p)->span;
+        Span span = span_merge(span_start, span_end);
+        left = ast_binary(p->ast, span, AST_BINARY, op, left, right);
     }
     }
 
