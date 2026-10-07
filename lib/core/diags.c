@@ -26,13 +26,19 @@ static void diag_render_line(const Source *src, Span span) {
     fprintf(stderr, RESET "\n");
 }
 
+static void verror(const char *fmt, va_list args) {
+    fputs(BOLD FGB_RED "ERROR: " FGB_WHITE, stderr);
+    vfprintf(stderr, fmt, args);
+    fputs(RESET "\n", stderr);
+}
+
 void diag_err(const Source *src, Span span, const char *fmt, ...) {
     fprintf(stderr, BOLD FGB_WHITE "%s:%zu:%zu: " RESET, src->file_path, span.start->ln,
             span.start->cn);
 
     va_list args;
     va_start(args, fmt);
-    error(fmt, args);
+    verror(fmt, args);
     va_end(args);
 
     diag_render_line(src, span);
@@ -41,18 +47,20 @@ void diag_err(const Source *src, Span span, const char *fmt, ...) {
 void error(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    fputs(BOLD FGB_RED "ERROR: " FGB_WHITE, stderr);
+    verror(fmt, args);
+    va_end(args);
+}
+
+static void vfatal(const char *fmt, va_list args) {
+    fputs(BOLD FGB_RED "FATAL: " FGB_WHITE, stderr);
     vfprintf(stderr, fmt, args);
     fputs(RESET "\n", stderr);
-    va_end(args);
 }
 
 [[noreturn]] void fatal(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    fputs(BOLD FGB_RED "FATAL: " RESET FGB_WHITE, stderr);
-    vfprintf(stderr, fmt, args);
-    fputs(RESET "\n", stderr);
+    vfatal(fmt, args);
     va_end(args);
     exit(EXIT_FAILURE);
 }

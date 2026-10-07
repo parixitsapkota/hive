@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
-#include "include/core/file.h"
+#include "include/core/source.h"
 #include "include/syntax/ast/ast.h"
 #include "include/syntax/lexer/lexer.h"
 #include "include/syntax/lexer/tokens.h"
@@ -15,18 +14,15 @@ int main(const int argc, const char *const *argv) {
         exit(EXIT_FAILURE);
     }
     const char *file_name = argv[1];
-
-    FILE *file = openf(file_name, 1);
-    size_t buf_len = 0;
-    const char *buffer = readf(file, &buf_len);
-
-    Lexer *lexer_context = init_lexer(file_name, buffer, buf_len);
+    Source *src = init_source(file_name);
+    Lexer *lexer_context = init_lexer(src);
     Token *tokens = lexer_lex(lexer_context);
-    Parser *parser_context = init_parser(file_name, tokens);
+    Parser *parser_context = init_parser(src, tokens);
     AstNode *root_node = parser_parse(parser_context);
     print_ast(root_node);
     free_parser(parser_context);
     free_lexer(lexer_context);
+    free_source(src);
 
     return 0;
 }

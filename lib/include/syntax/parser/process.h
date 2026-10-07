@@ -1,11 +1,12 @@
 #pragma once
 
+#include "include/core/source.h"
 #include "include/syntax/ast/ast.h"
 #include "include/syntax/lexer/tokens.h"
 #include "include/syntax/parser/parser.h"
 
 struct Parser {
-    const char *file_name;
+    const Source *src;
     // Token
     Token *tokens;
     Token *tok_tail;
