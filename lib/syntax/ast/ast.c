@@ -81,8 +81,8 @@ AstNode *ast_cond(Arena *a, Span span, AstNode *cond, AstNode *then_b, AstNode *
     return node;
 }
 
-AstNode *ast_ctl(Arena *a, Span span, AstNode *cond, AstNode *body) {
-    AstNode *node = ast_new(a, AST_WHILE, span);
+AstNode *ast_ctl(Arena *a, Span span, AstKind kind, AstNode *cond, AstNode *body) {
+    AstNode *node = ast_new(a, kind, span);
     node->as.ctl.expr = cond;
     node->as.ctl.body = body;
     return node;
