@@ -9,6 +9,36 @@
 
 static AstNode *parse_statement(Parser *p);
 
+static AstNode *parse_if(Parser *p) {
+    Span span_start = current(p)->span;
+    expect_and_consume(p, TOK_IF);
+
+    expect_and_consume(p, TOK_O_PREN);
+    AstNode *condition = parse_expr(p, PREC_NONE);
+    expect_and_consume(p, TOK_C_PREN);
+
+    AstNode *then_b = parse_statement(p);
+
+    AstNode *chain = NULL;
+    if (is_kind(p, TOK_ELSE)) {
+        Span else_start = current(p)->span;
+        pconsume(p);
+        if (is_kind(p, TOK_IF)) {
+            chain = parse_if(p);
+        } else {
+            AstNode *else_body = parse_statement(p);
+            Span end = current(p)->span;
+            Span span = span_merge(else_start, end);
+            chain = ast_cond(p->ast, span, NULL, else_body, NULL);
+        }
+    }
+
+    Span end = current(p)->span;
+    Span span = span_merge(span_start, end);
+
+    return ast_cond(p->ast, span, condition, then_b, chain);
+}
+
 static AstNode *parse_return(Parser *p) {
     Span start = pconsume(p)->span;
     AstNode *expr = parse_expr(p, PREC_NONE);
@@ -41,6 +71,7 @@ static AstNode *parse_body(Parser *p) {
 static AstNode *parse_statement(Parser *p) {
     switch (current(p)->kind) {
     case TOK_RETURN: return parse_return(p);
+    case TOK_IF: return parse_if(p);
     case TOK_O_BRACE: return parse_body(p);
     default: {
         AstNode *expr = parse_expr(p, PREC_NONE);

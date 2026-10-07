@@ -7,9 +7,15 @@ Diagnostics:
       - performance-*
       - bugprone-*
     Remove:
-      - readability-magic-numbers
-      - readability-implicit-bool-conversion
-      - bugprone-argument-comment
+      - "readability-identifier-length"
+      - "readability-implicit-bool-conversion"
+      - "readability-isolate-declaration"
+      - "readability-magic-numbers"
+      - "bugprone-easily-swappable-parameters"
 
+InlayHints:
+  Enabled: Yes
+  ParameterNames: Yes
+  DeducedTypes: Yes
 Index:
   Background: Build

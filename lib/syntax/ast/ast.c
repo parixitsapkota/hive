@@ -73,7 +73,7 @@ AstNode *ast_index(Arena *a, Span span, AstNode *left, AstNode *index) {
     return node;
 }
 
-AstNode *ast_if(Arena *a, Span span, AstNode *cond, AstNode *then_b, AstNode *else_b) {
+AstNode *ast_cond(Arena *a, Span span, AstNode *cond, AstNode *then_b, AstNode *else_b) {
     AstNode *node = ast_new(a, AST_IF, span);
     node->as.cond.cond = cond;
     node->as.cond.then_b = then_b;
@@ -81,7 +81,7 @@ AstNode *ast_if(Arena *a, Span span, AstNode *cond, AstNode *then_b, AstNode *el
     return node;
 }
 
-AstNode *ast_while(Arena *a, Span span, AstNode *cond, AstNode *body) {
+AstNode *ast_ctl(Arena *a, Span span, AstNode *cond, AstNode *body) {
     AstNode *node = ast_new(a, AST_WHILE, span);
     node->as.ctl.expr = cond;
     node->as.ctl.body = body;
