@@ -32,16 +32,22 @@ static void verror(const char *fmt, va_list args) {
     fputs(RESET "\n", stderr);
 }
 
-void diag_err(const Source *src, Span span, const char *fmt, ...) {
-    fprintf(stderr, BOLD FGB_WHITE "%s:%zu:%zu: " RESET, src->file_path, span.start->ln,
-            span.start->cn);
+void vdiag_err(const Source *src, Span span, const char *fmt, va_list args) {
+    if (span.start) {
+        fprintf(stderr, BOLD FGB_WHITE "%s:%zu:%zu: " RESET, src->file_path,
+                span.start->ln, span.start->cn);
+    } else {
+        fprintf(stderr, BOLD FGB_WHITE "%s: " RESET, src->file_path);
+    }
+    verror(fmt, args);
+    if (span.start) diag_render_line(src, span);
+}
 
+void diag_err(const Source *src, Span span, const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    verror(fmt, args);
+    vdiag_err(src, span, fmt, args);
     va_end(args);
-
-    diag_render_line(src, span);
 }
 
 void error(const char *fmt, ...) {
