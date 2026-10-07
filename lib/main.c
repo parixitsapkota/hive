@@ -1,11 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "include/core/diags.h"
 #include "include/core/source.h"
-#include "include/syntax/ast/ast.h"
 #include "include/syntax/lexer/lexer.h"
-#include "include/syntax/lexer/tokens.h"
 #include "include/syntax/parser/parser.h"
 
 int main(const int argc, const char *const *argv) {

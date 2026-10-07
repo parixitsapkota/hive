@@ -11,7 +11,7 @@ Token *next(Parser *p) { return p->tok_tail->next; }
 
 Token *pconsume(Parser *p) {
     Token *c = current(p);
-    p->tok_tail = p->tok_tail->next;
+    if (next(p)) p->tok_tail = p->tok_tail->next;
     return c;
 }
 
@@ -19,6 +19,7 @@ bool expect(Parser *p, TokenKind kind) {
     Token *tok = current(p);
 
     if (!tok || tok->kind != kind) {
+        ++p->errorc;
         const char *got =
             tok ? (tok->lexeme ? tok->lexeme : token_kind_to_str(tok->kind)) : "EOF";
         diag_err(p->src, tok ? tok->span : (Span){0}, "expected `%s`, but found `%s`",

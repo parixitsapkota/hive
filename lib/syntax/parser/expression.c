@@ -1,10 +1,12 @@
-#include "include/syntax/parser/expression.h"
+#include <stdbool.h>
+#include <stddef.h>
+
 #include "include/core/location.h"
 #include "include/syntax/ast/ast.h"
 #include "include/syntax/lexer/tokens.h"
+#include "include/syntax/parser/expression.h"
 #include "include/syntax/parser/parser.h"
 #include "include/syntax/parser/process.h"
-#include <stdbool.h>
 
 static bool is_kind_literal(TokenKind kind) {
     switch (kind) {
@@ -15,7 +17,7 @@ static bool is_kind_literal(TokenKind kind) {
     }
 }
 
-static bool is_unary_op(TokenKind kind) {
+static bool is_unary_prefix(TokenKind kind) {
     switch (kind) {
     case TOK_NOT:
     case TOK_ADD:
@@ -98,21 +100,66 @@ AstNode *parse_atom(Parser *p) {
 
 AstNode *parse_paren_expr(Parser *p) {
     expect_and_consume(p, TOK_O_PREN);
+
+    if (is_expression_delimiter(current(p)->kind)) {
+        parser_error(p, "expected a expression");
+        pconsume(p);
+        return NULL;
+    }
+
     AstNode *node = parse_expr(p, PREC_NONE);
     expect_and_consume(p, TOK_C_PREN);
     return node;
 }
 
-AstNode *parse_unary_prefix(Parser *p) {
+AstNode *parse_prefix(Parser *p) {
     TokenKind op = pconsume(p)->kind;
     AstNode *node = parse_expr(p, PREC_NONE);
     return ast_unary(p->ast, NULL, op, false, node);
 }
 
+AstNode *parse_call(Parser *p) {
+    const char *name = pconsume(p)->lexeme;
+    expect_and_consume(p, TOK_O_PREN);
+
+    size_t argc = 0;
+    AstNode *first_arg = NULL;
+    AstNode *last_arg = NULL;
+
+    while (!is_kind(p, TOK_C_PREN)) {
+        AstNode *expr = parse_expr(p, PREC_NONE);
+        ++argc;
+
+        if (!first_arg) {
+            first_arg = expr;
+        } else {
+            last_arg->next = expr;
+        }
+        last_arg = expr;
+
+        if (is_kind(p, TOK_COMMA)) {
+            if (next(p)) {
+                if (next(p)->kind == TOK_C_PREN)
+                    parser_error(p, "expected a expression after `,`");
+            }
+            pconsume(p);
+        } else {
+            break;
+        }
+    }
+
+    expect_and_consume(p, TOK_C_PREN);
+
+    return ast_call(p->ast, NULL, name, first_arg, argc);
+}
+
 AstNode *parse_primary(Parser *p) {
     TokenKind kind = current(p)->kind;
     if (kind == TOK_O_PREN) return parse_paren_expr(p);
-    if (is_unary_op(kind)) return parse_unary_prefix(p);
+    if (is_unary_prefix(kind)) return parse_prefix(p);
+    if (next(p)) {
+        if (next(p)->kind == TOK_O_PREN) return parse_call(p);
+    }
     return parse_atom(p);
 }
 
