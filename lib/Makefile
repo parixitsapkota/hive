@@ -2,7 +2,7 @@ LIB_DIR := $(ROOT_DIR)/lib
 TARGET  := $(ROOT_DIR)/$(OUTPUT)
 
 SRCS := $(sort $(shell find $(LIB_DIR) -name '*.c'))
-OBJS := $(patsubst $(LIB_DIR)/%.c,$(BUILD)/obj/%.o,$(SRCS))
+OBJS := $(patsubst $(LIB_DIR)/%.c,$(BUILD)/lib/%.o,$(SRCS))
 DEPS := $(OBJS:.o=.d)
 JSON := $(OBJS:.o=.json)
 
@@ -25,7 +25,7 @@ $(TARGET): $(OBJS)
 %.c:
 	@:
 
-$(BUILD)/obj/%.o: $(LIB_DIR)/%.c
+$(BUILD)/lib/%.o: $(LIB_DIR)/%.c
 	@mkdir -p $(dir $@)
 	@printf '$(COLOR_YELLOW)[CC] %s$(COLOR_RESET)\n' $(patsubst $(LIB_DIR)/%,%,$<)
 	@$(CC) $(ALL_CFLAGS) -MJ $(@:.o=.json) -c $< -o $@

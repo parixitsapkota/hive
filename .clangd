@@ -1,0 +1,15 @@
+CompileFlags:
+  Add: [-Wall, -Wextra, -Werror]
+
+Diagnostics:
+  ClangTidy:
+    Add:
+      - performance-*
+      - bugprone-*
+    Remove:
+      - readability-magic-numbers
+      - readability-implicit-bool-conversion
+      - bugprone-argument-comment
+
+Index:
+  Background: Build
