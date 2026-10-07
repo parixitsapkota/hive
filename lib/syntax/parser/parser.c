@@ -26,7 +26,7 @@ AstNode *parser_parse(Parser *p) {
         return NULL;
     }
 
-    print_tokens(p->src->file_path, p->tokens);
+    // print_tokens(p->src->file_path, p->tokens);
 
     AstNode *node = parse_func(p);
 

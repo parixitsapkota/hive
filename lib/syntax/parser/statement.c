@@ -48,6 +48,18 @@ static AstNode *parse_return(Parser *p) {
     return ast_stmt(p->ast, span, AST_RETURN, expr);
 }
 
+static AstNode *parse_break(Parser *p) {
+    Span span = pconsume(p)->span;
+    expect_and_consume(p, TOK_SEMICOLON);
+    return ast_new(p->ast, AST_BREAK, span);
+}
+
+static AstNode *parse_continue(Parser *p) {
+    Span span = pconsume(p)->span;
+    expect_and_consume(p, TOK_SEMICOLON);
+    return ast_new(p->ast, AST_CONTINUE, span);
+}
+
 static AstNode *parse_body(Parser *p) {
     expect_and_consume(p, TOK_O_BRACE);
     AstNode *first_stmt = NULL;
@@ -70,6 +82,8 @@ static AstNode *parse_body(Parser *p) {
 
 static AstNode *parse_statement(Parser *p) {
     switch (current(p)->kind) {
+    case TOK_BREAK: return parse_break(p);
+    case TOK_CONTINUE: return parse_continue(p);
     case TOK_RETURN: return parse_return(p);
     case TOK_IF: return parse_if(p);
     case TOK_O_BRACE: return parse_body(p);

@@ -43,6 +43,7 @@ typedef enum {
     AST_SWITCH,
     AST_CASE,
     AST_BREAK,
+    AST_CONTINUE,
     AST_RETURN,
     AST_GOTO,
     AST_LABEL,

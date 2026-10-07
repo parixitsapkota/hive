@@ -1,4 +1,5 @@
 #include "include/syntax/ast/visitor.h"
+#include "include/syntax/ast/ast.h"
 
 static VisitAction traverse_internal(AstNode *node, AstVisitorFn cb, size_t depth,
                                      void *user_data) {
@@ -20,6 +21,7 @@ static VisitAction traverse_internal(AstNode *node, AstVisitorFn cb, size_t dept
     case AST_STRING:
     case AST_IDENT:
     case AST_NULL_STMT:
+    case AST_CONTINUE:
     case AST_BREAK: break;
 
     case AST_EXPR_STMT:

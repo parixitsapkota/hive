@@ -28,6 +28,7 @@ static const char *ast_kind_to_string(AstKind kind) {
         [AST_SWITCH] = "AST_SWITCH",
         [AST_CASE] = "AST_CASE",
         [AST_BREAK] = "AST_BREAK",
+        [AST_CONTINUE] = "AST_CONTINUE",
         [AST_RETURN] = "AST_RETURN",
         [AST_GOTO] = "AST_GOTO",
         [AST_LABEL] = "AST_LABEL",
