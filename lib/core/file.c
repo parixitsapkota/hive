@@ -3,11 +3,12 @@
 
 #include "include/core/diags.h"
 #include "include/core/file.h"
+#include "include/core/info.h"
 
 FILE *openf(const char *path, uint8_t mode) {
     const char *mode_str = mode ? "rb" : "wa";
     FILE *f = fopen(path, mode_str);
-    if (!f) fatal(" File not found! `%s`", path);
+    if (!f) fatal(" File not found! " FG_GREEN "\"%s\"" RESET, path);
     return f;
 }
 
