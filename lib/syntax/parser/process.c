@@ -5,7 +5,7 @@
 #include "include/syntax/lexer/tokens.h"
 #include "include/syntax/parser/process.h"
 
-Token *current(Parser *p) { return p->tok_tail; }
+inline Token *current(Parser *p) { return p->tok_tail; }
 
 Token *next(Parser *p) { return p->tok_tail->next; }
 

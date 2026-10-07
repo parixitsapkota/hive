@@ -6,8 +6,8 @@
 #include "include/core/source.h"
 #include "include/syntax/ast/ast.h"
 #include "include/syntax/lexer/tokens.h"
-#include "include/syntax/parser/expression.h"
 #include "include/syntax/parser/parser.h"
+#include "include/syntax/parser/statement.h"
 
 #include "include/syntax/parser/process.h"
 
@@ -26,10 +26,9 @@ AstNode *parser_parse(Parser *p) {
         return NULL;
     }
 
-    // print_tokens(p->src->file_path, p->tokens);
+    print_tokens(p->src->file_path, p->tokens);
 
-    AstNode *node = parse_expr(p, PREC_NONE);
-    expect_and_consume(p, TOK_SEMICOLON);
+    AstNode *node = parse_func(p);
 
     print_ast(node);
 

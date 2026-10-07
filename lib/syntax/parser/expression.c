@@ -164,6 +164,8 @@ AstNode *parse_primary(Parser *p) {
 }
 
 AstNode *parse_expr(Parser *p, Precedence prec) {
+    if (current(p)->kind == TOK_SEMICOLON) return NULL;
+
     AstNode *left = parse_primary(p);
     if (!left) return NULL;
 
