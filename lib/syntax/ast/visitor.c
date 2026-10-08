@@ -21,14 +21,13 @@ static VisitAction traverse_internal(AstNode *node, AstVisitorFn cb, size_t dept
     case AST_STRING:
     case AST_IDENT:
     case AST_NULL_STMT:
+    case AST_GOTO:
+    case AST_LABEL:
     case AST_CONTINUE:
     case AST_BREAK: break;
 
     case AST_EXPR_STMT:
-    case AST_RETURN:
-    case AST_GOTO: VISIT_CHILD(node->as.stmt.expr); break;
-
-    case AST_LABEL: VISIT_CHILD(node->as.label.stmt); break;
+    case AST_RETURN: VISIT_CHILD(node->as.stmt.expr); break;
 
     case AST_UNARY: VISIT_CHILD(node->as.unary.operand); break;
 

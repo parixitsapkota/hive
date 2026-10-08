@@ -76,6 +76,24 @@ static AstNode *parse_continue(Parser *p) {
     return ast_new(p->ast, AST_CONTINUE, span);
 }
 
+static AstNode *parse_label(Parser *p) {
+    Token *tok = pconsume(p);
+    pconsume(p);
+    return ast_label(p->ast, tok->span, AST_LABEL, tok->lexeme);
+}
+
+static AstNode *parse_goto(Parser *p) {
+    pconsume(p);
+    if (current(p)->kind != IDENTIFIER_LIT) {
+        parser_error(p, "expected a `IDENTIFIER`, but found `%s`",
+                     token_kind_to_str(current(p)->kind));
+        return NULL;
+    }
+    Token *tok = pconsume(p);
+    expect_and_consume(p, TOK_SEMICOLON);
+    return ast_label(p->ast, tok->span, AST_GOTO, tok->lexeme);
+}
+
 static AstNode *parse_case(Parser *p) {
     Span span = pconsume(p)->span;
     AstNode *expr = parse_expr(p, PREC_NONE);
@@ -231,6 +249,14 @@ static AstNode *parse_statement(Parser *p) {
     case TOK_WHILE: return parse_while(p);
     case TOK_SWITCH: return parse_switch(p);
     case TOK_O_BRACE: return parse_body(p);
+    case TOK_GOTO: return parse_goto(p);
+
+    case IDENTIFIER_LIT:
+        if (next(p) && next(p)->kind == TOK_COLON) {
+            return parse_label(p);
+        }
+        [[fallthrough]];
+
     default: {
         AstNode *expr = parse_expr(p, PREC_NONE);
         if (!expr || !expect_and_consume(p, TOK_SEMICOLON)) return sync_decl(p);

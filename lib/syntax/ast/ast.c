@@ -66,6 +66,12 @@ AstNode *ast_stmt(Arena *a, Span span, AstKind kind, AstNode *expr) {
     return node;
 }
 
+AstNode *ast_label(Arena *a, Span span, AstKind kind, const char *name) {
+    AstNode *node = ast_new(a, kind, span);
+    node->as.label = name;
+    return node;
+}
+
 AstNode *ast_index(Arena *a, Span span, AstNode *left, AstNode *index) {
     AstNode *node = ast_new(a, AST_INDEX, span);
     node->as.index.base = left;

@@ -85,6 +85,10 @@ static VisitAction ast_printer(AstNode *node, const VisitContext *ctx) {
     case AST_EXTRN:
         printf(FG_RED "%s: " FG_GREEN "\"%s\"\n" RESET, ast_kind_to_string(node->kind),
                node->as.decl.name);
+    case AST_GOTO:
+    case AST_LABEL:
+        printf(FG_RED "%s: " FG_GREEN "\"%s\"\n" RESET, ast_kind_to_string(node->kind),
+               node->as.label);
     case AST_FUNCTION:
         printf(FG_RED "%s: " FG_GREEN "\"%s\"\n" RESET, ast_kind_to_string(node->kind),
                node->as.func.name);
