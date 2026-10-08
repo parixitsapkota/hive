@@ -4,7 +4,7 @@
 .zed/
 build/
 temp/
-hive*
+hive
 compile_commands.json
 
 # Project generated.
@@ -12,9 +12,7 @@ compile_commands.json
 *.out
 *.exe
 *.bin
-# inputs
-*.tri
 # outputs
-*.tir
-*.s
-*.asm
+./*.b
+./*.s
+./*.asm
