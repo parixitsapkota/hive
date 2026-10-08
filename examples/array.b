@@ -11,7 +11,7 @@ main() {
 
     i = 0;
     while (i < 5) {
-        putchar(*(&num + i * 8));
+        putchar(*(num + i * 8));
         ++i;
     }
     putchar('*n');
@@ -33,7 +33,7 @@ main() {
 
     i = 0;
     while (i < 5) {
-        putchar(*(&num + i * 8));
+        putchar(*(num + i * 8));
         ++i;
     }
     putchar('*n');
