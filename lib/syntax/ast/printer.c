@@ -66,8 +66,11 @@ static VisitAction ast_printer(AstNode *node, const VisitContext *ctx) {
                node->as.string.str);
         break;
     case AST_UNARY:
-        printf(FGB_CYAN "%s: " FG_YELLOW "op" FGB_CYAN " : " FG_RED "`%s`\n" RESET,
-               ast_kind_to_string(node->kind), token_kind_to_str(node->as.unary.op));
+        printf(FGB_CYAN "%s: " FG_RED "%s " FG_YELLOW "op" FGB_CYAN " : " FG_RED
+                        "`%s`\n" RESET,
+               ast_kind_to_string(node->kind),
+               node->as.unary.postfix ? "postfix" : "prefix",
+               token_kind_to_str(node->as.unary.op));
         break;
     case AST_BINARY:
         printf(FGB_CYAN "%s: " FG_YELLOW "op" FGB_CYAN " : " FG_RED "`%s`\n" RESET,

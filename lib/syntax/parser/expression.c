@@ -8,11 +8,21 @@
 #include "include/syntax/parser/parser.h"
 #include "include/syntax/parser/process.h"
 
+static AstNode *parse_primary(Parser *p);
+
 static bool is_kind_literal(TokenKind kind) {
     switch (kind) {
     case INT_LIT:
     case STRING_LIT:
     case IDENTIFIER_LIT: return true;
+    default: return false;
+    }
+}
+
+static bool is_unary_op(TokenKind kind) {
+    switch (kind) {
+    case TOK_INC:
+    case TOK_DEC: return true;
     default: return false;
     }
 }
@@ -23,10 +33,8 @@ static bool is_unary_prefix(TokenKind kind) {
     case TOK_ADD:
     case TOK_SUB:
     case TOK_MUL:
-    case TOK_INC:
-    case TOK_DEC:
     case TOK_BIT_AND: return true;
-    default: return false;
+    default: return is_unary_op(kind);
     }
 }
 
@@ -112,11 +120,62 @@ AstNode *parse_paren_expr(Parser *p) {
     return node;
 }
 
-AstNode *parse_prefix(Parser *p) {
-    Token *tok = pconsume(p);
-    TokenKind op = tok->kind;
-    AstNode *node = parse_expr(p, PREC_NONE);
-    return ast_unary(p->ast, tok->span, op, false, node);
+/* ---------- subscript: target '[' expr ']' ---------- */
+static AstNode *parse_subscript(Parser *p, AstNode *target) {
+    pconsume(p); /* '[' */
+    AstNode *index = parse_expr(p, PREC_NONE);
+
+    Span span = span_merge(target->span, current(p)->span);
+    expect_and_consume(p, TOK_C_BRACKET);
+
+    return ast_index(p->ast, span, target, index);
+}
+
+/* ---------- postfix: primary { subscript | ++ | -- } ----------
+ * Left-associative, binds tighter than any prefix operator.
+ * Calls are handled in parse_primary (name '(' ... ')'), so they
+ * are already a primary here:
+ *   f(x)++--   ->  ((f(x))++)--
+ *   a[i]++--   ->  ((a[i])++)--
+ */
+static AstNode *parse_postfix(Parser *p) {
+    AstNode *expr = parse_primary(p);
+    if (!expr) return NULL;
+
+    for (;;) {
+        TokenKind kind = current(p)->kind;
+
+        if (kind == TOK_O_BRACKET) {
+            expr = parse_subscript(p, expr);
+        } else if (kind == TOK_INC || kind == TOK_DEC) {
+            Token *op = pconsume(p);
+            Span span = span_merge(expr->span, op->span);
+            expr = ast_unary(p->ast, span, op->kind, true, expr);
+        } else {
+            break;
+        }
+    }
+    return expr;
+}
+
+/* ---------- unary (prefix) ----------
+ * Right-associative: ++--x, -*p, !-x, &a[i], ...
+ * The operand is another unary expression (which bottoms out in postfix),
+ * NOT parse_expr, so `-a + b` is `(-a) + b` and `++a[i]++` is `++(a[i]++)`.
+ */
+static AstNode *parse_unary(Parser *p) {
+    if (is_unary_prefix(current(p)->kind)) {
+        Token *tok = pconsume(p);
+        Span op_span = tok->span; /* copy before parsing further */
+        TokenKind op = tok->kind;
+
+        AstNode *operand = parse_unary(p);
+        if (!operand) return NULL;
+
+        Span span = span_merge(op_span, operand->span);
+        return ast_unary(p->ast, span, op, false, operand);
+    }
+    return parse_postfix(p);
 }
 
 AstNode *parse_call(Parser *p) {
@@ -155,13 +214,18 @@ AstNode *parse_call(Parser *p) {
     return ast_call(p->ast, span, name, first_arg, argc);
 }
 
-AstNode *parse_primary(Parser *p) {
+/* ---------- primary: call | '(' expr ')' | atom ----------
+ * No prefix handling here; prefix sits ABOVE postfix.
+ * A call is `identifier '('`, detected by one token of lookahead.
+ */
+static AstNode *parse_primary(Parser *p) {
     TokenKind kind = current(p)->kind;
-    if (kind == TOK_O_PREN) return parse_paren_expr(p);
-    if (is_unary_prefix(kind)) return parse_prefix(p);
-    if (next(p)) {
-        if (next(p)->kind == TOK_O_PREN) return parse_call(p);
-        // TODO: add postfix precidence and vector subscripting.
+
+    if (kind == IDENTIFIER_LIT && next(p) && next(p)->kind == TOK_O_PREN) {
+        return parse_call(p);
+    }
+    if (kind == TOK_O_PREN) {
+        return parse_paren_expr(p);
     }
     return parse_atom(p);
 }
@@ -171,7 +235,7 @@ AstNode *parse_expr(Parser *p, Precedence prec) {
 
     Span span_start = current(p)->span;
 
-    AstNode *left = parse_primary(p);
+    AstNode *left = parse_unary(p);
     if (!left) return NULL;
 
     while (current(p) != NULL) {

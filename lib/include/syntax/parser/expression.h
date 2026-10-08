@@ -19,5 +19,4 @@ typedef enum {
 
 AstNode *parse_atom(Parser *p);
 AstNode *parse_prefix(Parser *p);
-AstNode *parse_primary(Parser *p);
 AstNode *parse_expr(Parser *p, Precedence prec);
