@@ -3,4 +3,6 @@
 #include "include/syntax/ast/ast.h"
 #include "include/syntax/parser/parser.h"
 
+AstNode *parse_global_decl(Parser *p);
+
 AstNode *parse_func(Parser *p);

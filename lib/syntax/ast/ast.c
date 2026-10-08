@@ -94,6 +94,16 @@ AstNode *ast_block(Arena *a, Span span, AstNode *stmts) {
     return node;
 }
 
+AstNode *ast_decl(Arena *a, Span span, AstKind kind, const char *name, bool is_vec,
+                  size_t size, AstNode *init) {
+    AstNode *node = ast_new(a, kind, span);
+    node->as.decl.name = name;
+    node->as.decl.is_vec = is_vec;
+    node->as.decl.size = size;
+    node->as.decl.init = init;
+    return node;
+}
+
 AstNode *ast_function(Arena *a, Span span, const char *name, AstNode *params,
                       size_t nparams, AstNode *body) {
     AstNode *node = ast_new(a, AST_FUNCTION, span);

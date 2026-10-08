@@ -69,6 +69,15 @@ make clean all PLATFORM=linux MODE=release
 
 ---
 
+## Refrences
+
+- [B_programming_language](<https://en.wikipedia.org/wiki/B_(programming_language)>)
+- [Users' Reference to B ](https://www.nokia.com/bell-labs/about/dennis-m-ritchie/kbman.html)
+- [INTRODUCTION TO THE LANGUAGE B](https://www.nokia.com/bell-labs/about/dennis-m-ritchie/btut.html)
+- [REFERENCE TO B](https://www.nokia.com/bell-labs/about/dennis-m-ritchie/bref.html)
+
+---
+
 <p align="center">
   <a href="https://github.com/parixitsapkota/hive/blob/main/LICENSE">
     <img alt="GitHub License" src="https://img.shields.io/github/license/parixitsapkota/hive?colorA=141c1e&colorB=cc9694&style=for-the-badge&logo=apache&logoColor=cc9694">

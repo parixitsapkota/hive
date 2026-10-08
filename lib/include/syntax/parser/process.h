@@ -20,11 +20,21 @@ struct Parser {
     size_t errorc;
 };
 
+
+typedef struct {
+    AstNode *first;
+    AstNode *last;
+} NodeChain;
+
+void chain_append(NodeChain *c, AstNode *head);
+
 Token *current(Parser *p);
 
 Token *next(Parser *p);
 
 Token *pconsume(Parser *p);
+
+bool expect(Parser *p, TokenKind kind);
 
 bool expect_and_consume(Parser *p, TokenKind kind);
 

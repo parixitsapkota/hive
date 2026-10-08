@@ -1,5 +1,6 @@
 #include "include/core/diags.h"
 #include "include/core/source.h"
+#include "include/syntax/ast/ast.h"
 #include "include/syntax/lexer/lexer.h"
 #include "include/syntax/parser/parser.h"
 
@@ -12,7 +13,7 @@ int main(const int argc, const char *const *argv) {
     Token *tokens = lexer_lex(lexer_context);
     Parser *parser_context = init_parser(src, tokens);
     AstNode *root_node = parser_parse(parser_context);
-    (void)root_node;
+    print_ast(root_node);
     free_parser(parser_context);
     free_lexer(lexer_context);
     free_source(src);

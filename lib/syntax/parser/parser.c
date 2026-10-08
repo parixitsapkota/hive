@@ -22,18 +22,29 @@ Parser *init_parser(const Source *src, Token *tokens) {
 }
 
 AstNode *parser_parse(Parser *p) {
-    if (!p->tokens) {
-        return NULL;
+    if (!p->tokens) return NULL;
+
+    NodeChain chain = {0};
+
+    while (current(p)) {
+        Token *tok = current(p);
+
+        if (tok->kind != IDENTIFIER_LIT) {
+            parser_error(p, "expected a definition, but found `%s`",
+                         token_kind_to_str(tok->kind));
+            pconsume(p);
+            break;
+        }
+
+        Token *nxt = next(p);
+        if (nxt && nxt->kind == TOK_O_PREN) {
+            chain_append(&chain, parse_func(p));
+        } else {
+            chain_append(&chain, parse_global_decl(p));
+        }
     }
-
-    // print_tokens(p->src->file_path, p->tokens);
-
-    AstNode *node = parse_func(p);
-
-    print_ast(node);
-
     if (p->errorc > 0) fatal("parser had %zu error(s).", p->errorc);
-    return node;
+    return chain.first;
 }
 
 void free_parser(Parser *p) {

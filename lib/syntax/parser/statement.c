@@ -76,30 +76,115 @@ static AstNode *parse_continue(Parser *p) {
     return ast_new(p->ast, AST_CONTINUE, span);
 }
 
-static AstNode *parse_body(Parser *p) {
-    expect_and_consume(p, TOK_O_BRACE);
-    AstNode *first_stmt = NULL;
-    AstNode *last_stmt = NULL;
+typedef struct {
+    Token *tok;
+    size_t size;
+    bool is_vec;
+} DeclName;
 
-    while (current(p) && current(p)->kind != TOK_C_BRACE) {
-        AstNode *statement = parse_statement(p);
+static AstNode *sync_decl(Parser *p) {
+    while (current(p) && current(p)->kind != TOK_SEMICOLON &&
+           current(p)->kind != TOK_C_BRACE) {
+        pconsume(p);
+    }
+    if (current(p) && current(p)->kind == TOK_SEMICOLON) pconsume(p);
+    return NULL;
+}
 
-        if (!first_stmt) {
-            first_stmt = statement;
-        } else {
-            last_stmt->next = statement;
+static bool parse_vector_size(Parser *p, size_t *out) {
+    if (!is_kind(p, INT_LIT)) {
+        parser_error(p, "expected a constant, before `%s`",
+                     current(p) ? token_kind_to_str(current(p)->kind) : "end of input");
+        return false;
+    }
+    *out = (size_t)pconsume(p)->int_lit;
+    return expect_and_consume(p, TOK_C_BRACKET);
+}
+
+static bool parse_decl_name(Parser *p, bool allow_vector, DeclName *out) {
+    if (!is_kind(p, IDENTIFIER_LIT)) {
+        parser_error(p, "expected a variable declaration, before `%s`",
+                     current(p) ? token_kind_to_str(current(p)->kind) : "end of input");
+        return false;
+    }
+    out->tok = pconsume(p);
+    out->size = 1;
+    out->is_vec = false;
+
+    if (is_kind(p, TOK_O_BRACKET)) {
+        if (!allow_vector) {
+            parser_error(p, "`extrn` declarations cannot have a vector size");
+            return false;
         }
-        last_stmt = statement;
+        pconsume(p);
+        out->is_vec = true;
+        if (!parse_vector_size(p, &out->size)) return false;
+    }
+    return true;
+}
+
+static AstNode *parse_ival_list(Parser *p) {
+    NodeChain ivals = {0};
+    for (;;) {
+        AstNode *atom = parse_atom(p);
+        if (!atom) return NULL;
+        chain_append(&ivals, atom);
+
+        if (!is_kind(p, TOK_COMMA)) break;
+        pconsume(p);
+    }
+    return ivals.first;
+}
+
+static AstNode *parse_name_list(Parser *p, AstKind kind, bool allow_vector) {
+    NodeChain decls = {0};
+    for (;;) {
+        DeclName name;
+        if (!parse_decl_name(p, allow_vector, &name)) return sync_decl(p);
+
+        chain_append(&decls, ast_decl(p->ast, name.tok->span, kind, name.tok->lexeme,
+                                      name.is_vec, name.size, NULL));
+
+        if (!is_kind(p, TOK_COMMA)) break;
+        pconsume(p);
+    }
+    if (!expect_and_consume(p, TOK_SEMICOLON)) return sync_decl(p);
+    return decls.first;
+}
+
+static AstNode *parse_auto_decl(Parser *p) {
+    pconsume(p);
+    return parse_name_list(p, AST_AUTO, true);
+}
+
+static AstNode *parse_extrn_decl(Parser *p) {
+    pconsume(p);
+    return parse_name_list(p, AST_EXTRN, false);
+}
+
+static AstNode *parse_statement(Parser *p);
+
+static AstNode *parse_body(Parser *p) {
+    pconsume(p);
+
+    NodeChain stmts = {0};
+    while (current(p) && current(p)->kind != TOK_C_BRACE) {
+        Token *before = current(p);
+        chain_append(&stmts, parse_statement(p));
+
+        if (current(p) == before && current(p)) pconsume(p);
     }
     expect_and_consume(p, TOK_C_BRACE);
 
-    return first_stmt;
+    return stmts.first;
 }
 
 static AstNode *parse_statement(Parser *p) {
     switch (current(p)->kind) {
     case TOK_BREAK: return parse_break(p);
     case TOK_CONTINUE: return parse_continue(p);
+    case TOK_AUTO: return parse_auto_decl(p);
+    case TOK_EXTRN: return parse_extrn_decl(p);
     case TOK_RETURN: return parse_return(p);
     case TOK_IF: return parse_if(p);
     case TOK_WHILE: return parse_ctl(p, AST_WHILE);
@@ -107,48 +192,93 @@ static AstNode *parse_statement(Parser *p) {
     case TOK_O_BRACE: return parse_body(p);
     default: {
         AstNode *expr = parse_expr(p, PREC_NONE);
-        expect_and_consume(p, TOK_SEMICOLON);
+        if (!expr || !expect_and_consume(p, TOK_SEMICOLON)) return sync_decl(p);
         return expr;
     }
     }
 }
 
-AstNode *parse_func(Parser *p) {
-    Token *tok = pconsume(p);
-    const char *name = tok->lexeme;
+AstNode *parse_global_decl(Parser *p) {
+    DeclName name;
+    if (!parse_decl_name(p, true, &name)) return sync_decl(p);
 
-    AstNode *first_param = NULL;
-    AstNode *last_param = NULL;
-    size_t paramc = 0;
+    AstNode *ivals = NULL;
 
-    expect_and_consume(p, TOK_O_PREN);
-    while (!is_kind(p, TOK_C_PREN)) {
-        Token *param = pconsume(p);
-        const char *param_name = param->lexeme;
-        AstNode *param_ident = ast_ident_val(p->ast, param->span, param_name);
-        ++paramc;
-
-        if (!first_param) {
-            first_param = param_ident;
-        } else {
-            last_param->next = param_ident;
-        }
-        last_param = param_ident;
-
+    if (name.is_vec) {
         if (is_kind(p, TOK_COMMA)) {
-            if (next(p) && next(p)->kind == TOK_C_PREN) {
-                parser_error(p, "expected a parameter name after `,`");
-            }
             pconsume(p);
-        } else {
-            break;
+            ivals = parse_ival_list(p);
+            if (!ivals) return sync_decl(p);
+        } else if (!is_kind(p, TOK_SEMICOLON)) {
+            if (!expect(p, TOK_COMMA)) return sync_decl(p);
+        }
+    } else {
+        bool has_comma = is_kind(p, TOK_COMMA);
+        if (has_comma) pconsume(p);
+        if (has_comma || !is_kind(p, TOK_SEMICOLON)) {
+            ivals = parse_atom(p);
+            if (!ivals) return sync_decl(p);
         }
     }
-    Span end = current(p)->span;
-    Span span = span_merge(tok->span, end);
-    expect_and_consume(p, TOK_C_PREN);
 
+    if (!expect_and_consume(p, TOK_SEMICOLON)) return sync_decl(p);
+
+    return ast_decl(p->ast, name.tok->span, AST_GLOBAL_DECL, name.tok->lexeme,
+                    name.is_vec, name.size, ivals);
+}
+
+static bool check_kind(Parser *p, TokenKind kind) {
+    return current(p) && current(p)->kind == kind;
+}
+
+static void sync_params(Parser *p) {
+    while (current(p) && !check_kind(p, TOK_C_PREN) && !check_kind(p, TOK_O_BRACE) &&
+           !check_kind(p, TOK_SEMICOLON)) {
+        pconsume(p);
+    }
+    if (check_kind(p, TOK_C_PREN)) pconsume(p);
+}
+
+static bool parse_param_list(Parser *p, NodeChain *params, size_t *paramc) {
+    if (check_kind(p, TOK_C_PREN)) return true;
+
+    for (;;) {
+        if (!check_kind(p, IDENTIFIER_LIT)) {
+            parser_error(p, "expected a parameter name, before `%s`",
+                         current(p) ? token_kind_to_str(current(p)->kind)
+                                    : "end of input");
+            return false;
+        }
+        Token *param = pconsume(p);
+        chain_append(params, ast_ident_val(p->ast, param->span, param->lexeme));
+        ++*paramc;
+
+        if (!check_kind(p, TOK_COMMA)) return true;
+        pconsume(p);
+    }
+}
+
+AstNode *parse_func(Parser *p) {
+    Token *name_tok = pconsume(p);
+    const char *name = name_tok->lexeme;
+
+    NodeChain params = {0};
+    size_t paramc = 0;
+    Token *close = NULL;
+
+    if (!expect_and_consume(p, TOK_O_PREN)) {
+        sync_params(p);
+    } else if (!parse_param_list(p, &params, &paramc)) {
+        sync_params(p);
+    } else if (check_kind(p, TOK_C_PREN)) {
+        close = pconsume(p);
+    } else {
+        expect(p, TOK_C_PREN);
+        sync_params(p);
+    }
+
+    Span span = close ? span_merge(name_tok->span, close->span) : name_tok->span;
     AstNode *body = parse_statement(p);
 
-    return ast_function(p->ast, span, name, first_param, paramc, body);
+    return ast_function(p->ast, span, name, params.first, paramc, body);
 }

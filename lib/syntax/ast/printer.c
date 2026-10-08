@@ -73,6 +73,14 @@ static VisitAction ast_printer(AstNode *node, const VisitContext *ctx) {
         printf(FG_BLACK "%s: " FG_YELLOW "op" FG_BLACK " : " FG_RED "`%s`\n" RESET,
                ast_kind_to_string(node->kind), token_kind_to_str(node->as.binary.op));
         break;
+    case AST_GLOBAL_DECL:
+    case AST_AUTO:
+        printf(FG_BLACK "%s: " FG_GREEN "\"%s\" " FG_BLACK "size: " FG_RED "%zu\n" RESET,
+               ast_kind_to_string(node->kind), node->as.decl.name, node->as.decl.size);
+        break;
+    case AST_EXTRN:
+        printf(FG_BLACK "%s: " FG_GREEN "\"%s\"\n" RESET, ast_kind_to_string(node->kind),
+               node->as.decl.name);
     case AST_FUNCTION:
         printf(FG_BLACK "%s: " FG_GREEN "\"%s\"\n" RESET, ast_kind_to_string(node->kind),
                node->as.func.name);

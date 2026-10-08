@@ -167,6 +167,8 @@ AstNode *ast_call(Arena *a, Span span, const char *callee, AstNode *args, size_t
 AstNode *ast_cond(Arena *a, Span span, AstNode *cond, AstNode *then_b, AstNode *else_b);
 AstNode *ast_ctl(Arena *a, Span span, AstKind kind, AstNode *cond, AstNode *body);
 AstNode *ast_block(Arena *a, Span span, AstNode *stmts);
+AstNode *ast_decl(Arena *a, Span span, AstKind kind, const char *name, bool is_vec,
+                  size_t size, AstNode *init);
 AstNode *ast_function(Arena *a, Span span, const char *name, AstNode *params,
                       size_t nparams, AstNode *body);
 

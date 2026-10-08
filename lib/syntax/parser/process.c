@@ -7,11 +7,14 @@
 
 inline Token *current(Parser *p) { return p->tok_tail; }
 
-Token *next(Parser *p) { return p->tok_tail->next; }
+inline Token *next(Parser *p) { return p->tok_tail->next; }
 
 Token *pconsume(Parser *p) {
     Token *c = current(p);
-    if (next(p)) p->tok_tail = p->tok_tail->next;
+    if (next(p))
+        p->tok_tail = p->tok_tail->next;
+    else
+        p->tok_tail = NULL;
     return c;
 }
 
@@ -38,7 +41,7 @@ bool expect_and_consume(Parser *p, TokenKind kind) {
     return true;
 }
 
-bool is_kind(Parser *p, TokenKind kind) { return current(p)->kind == kind; }
+inline bool is_kind(Parser *p, TokenKind kind) { return current(p)->kind == kind; }
 
 void *parser_error(Parser *p, const char *fmt, ...) {
     ++p->errorc;
@@ -47,4 +50,16 @@ void *parser_error(Parser *p, const char *fmt, ...) {
     vdiag_err(p->src, p->tok_tail->span, fmt, args);
     va_end(args);
     return NULL;
+}
+
+void chain_append(NodeChain *c, AstNode *head) {
+    if (!head) return;
+    if (c->first) {
+        c->last->next = head;
+    } else {
+        c->first = head;
+    }
+    c->last = head;
+    while (c->last->next)
+        c->last = c->last->next;
 }
