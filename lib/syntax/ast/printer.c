@@ -1,8 +1,10 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "include/core/info.h"
+#include "include/core/mem.h"
 #include "include/syntax/ast/ast.h"
-#include "include/syntax/ast/visitor.h"
 #include "include/syntax/lexer/tokens.h"
 
 static const char *ast_kind_to_string(AstKind kind) {
@@ -47,63 +49,163 @@ static const char *ast_kind_to_string(AstKind kind) {
     return "AST_UNKNOWN";
 }
 
-static VisitAction ast_printer(AstNode *node, const VisitContext *ctx) {
-    for (size_t i = 0; i < ctx->depth; i++) {
-        printf("   ");
-    }
+static void print_node_label(const AstNode *node) {
+    const char *kind = ast_kind_to_string(node->kind);
 
     switch (node->kind) {
     case AST_INT:
-        printf(FGB_CYAN "%s: " FG_GREEN "\"%zu\"\n" RESET, ast_kind_to_string(node->kind),
-               node->as.int_val);
+        printf(FGB_CYAN "%s: " FG_GREEN "\"%zu\"" RESET, kind, node->as.int_val);
+        break;
+    case AST_CHAR:
+        printf(FGB_CYAN "%s: " FG_GREEN "%zu" RESET, kind, node->as.int_val);
         break;
     case AST_IDENT:
-        printf(FGB_CYAN "%s: " FG_GREEN "\"%s\"\n" RESET, ast_kind_to_string(node->kind),
-               node->as.ident.name);
+        printf(FGB_CYAN "%s: " FG_GREEN "\"%s\"" RESET, kind, node->as.ident.name);
         break;
     case AST_STRING:
-        printf(FGB_CYAN "%s: " FG_GREEN "\"%s\"\n" RESET, ast_kind_to_string(node->kind),
-               node->as.string.str);
+        printf(FGB_CYAN "%s: " FG_GREEN "\"%s\"" RESET, kind, node->as.string.str);
         break;
     case AST_UNARY:
         printf(FGB_CYAN "%s: " FG_RED "%s " FG_YELLOW "op" FGB_CYAN " : " FG_RED
-                        "`%s`\n" RESET,
-               ast_kind_to_string(node->kind),
-               node->as.unary.postfix ? "postfix" : "prefix",
+                        "`%s`" RESET,
+               kind, node->as.unary.postfix ? "postfix" : "prefix",
                token_kind_to_str(node->as.unary.op));
         break;
     case AST_BINARY:
-        printf(FGB_CYAN "%s: " FG_YELLOW "op" FGB_CYAN " : " FG_RED "`%s`\n" RESET,
-               ast_kind_to_string(node->kind), token_kind_to_str(node->as.binary.op));
+        printf(FGB_CYAN "%s: " FG_YELLOW "op" FGB_CYAN " : " FG_RED "`%s`" RESET, kind,
+               token_kind_to_str(node->as.binary.op));
         break;
     case AST_ASSIGN:
-        printf(FGB_YELLOW "%s: " FG_YELLOW "op" FGB_CYAN " : " FG_RED "`%s`\n" RESET,
-               ast_kind_to_string(node->kind), token_kind_to_str(node->as.binary.op));
+        printf(FGB_YELLOW "%s: " FG_YELLOW "op" FGB_CYAN " : " FG_RED "`%s`" RESET, kind,
+               token_kind_to_str(node->as.binary.op));
         break;
     case AST_GLOBAL_DECL:
     case AST_AUTO:
-        printf(FG_RED "%s: " FG_GREEN "\"%s\" " FGB_CYAN "size: " FG_RED "%zu\n" RESET,
-               ast_kind_to_string(node->kind), node->as.decl.name, node->as.decl.size);
+        printf(FG_RED "%s: " FG_GREEN "\"%s\" " FGB_CYAN "size: " FG_RED "%zu" RESET,
+               kind, node->as.decl.name, node->as.decl.size);
         break;
     case AST_EXTRN:
-        printf(FG_RED "%s: " FG_GREEN "\"%s\"\n" RESET, ast_kind_to_string(node->kind),
-               node->as.decl.name);
+        printf(FG_RED "%s: " FG_GREEN "\"%s\"" RESET, kind, node->as.decl.name);
+        break;
     case AST_GOTO:
     case AST_LABEL:
-        printf(FG_RED "%s: " FG_GREEN "\"%s\"\n" RESET, ast_kind_to_string(node->kind),
-               node->as.label);
+        printf(FG_RED "%s: " FG_GREEN "\"%s\"" RESET, kind, node->as.label);
+        break;
     case AST_FUNCTION:
-        printf(FG_RED "%s: " FG_GREEN "\"%s\"\n" RESET, ast_kind_to_string(node->kind),
-               node->as.func.name);
+        printf(FG_RED "%s: " FG_GREEN "\"%s\"" RESET, kind, node->as.func.name);
         break;
     case AST_CALL:
-        printf(FGB_MAGENTA "%s: " FG_GREEN "\"%s\"\n" RESET,
-               ast_kind_to_string(node->kind), node->as.call.callee);
+        printf(FGB_MAGENTA "%s: " FG_GREEN "\"%s\"" RESET, kind, node->as.call.callee);
         break;
-    default: printf(FG_RED "%s:\n" RESET, ast_kind_to_string(node->kind)); break;
+    default: printf(FG_RED "%s:" RESET, kind); break;
     }
-
-    return VISIT_CONTINUE;
+    putchar('\n');
 }
 
-void print_ast(AstNode *root) { ast_visit(root, ast_printer, NULL); }
+typedef struct {
+    AstNode *heads[4];
+    size_t n;
+} Kids;
+
+static void kids_add(Kids *k, AstNode *head) {
+    if (head) k->heads[k->n++] = head;
+}
+
+static Kids get_kids(const AstNode *n) {
+    Kids k = {0};
+    switch (n->kind) {
+    case AST_UNARY: kids_add(&k, n->as.unary.operand); break;
+    case AST_BINARY:
+    case AST_ASSIGN:
+        kids_add(&k, n->as.binary.lhs);
+        kids_add(&k, n->as.binary.rhs);
+        break;
+    case AST_IF:
+    case AST_TERNARY:
+        kids_add(&k, n->as.cond.cond);
+        kids_add(&k, n->as.cond.then_b);
+        kids_add(&k, n->as.cond.else_b);
+        break;
+    case AST_WHILE:
+    case AST_SWITCH:
+    case AST_CASE:
+        kids_add(&k, n->as.ctl.expr);
+        kids_add(&k, n->as.ctl.body);
+        break;
+    case AST_INDEX:
+        kids_add(&k, n->as.index.base);
+        kids_add(&k, n->as.index.index);
+        break;
+    case AST_CALL: kids_add(&k, n->as.call.args); break;
+    case AST_BLOCK: kids_add(&k, n->as.block.stmts); break;
+    case AST_EXPR_STMT:
+    case AST_RETURN: kids_add(&k, n->as.stmt.expr); break;
+    case AST_AUTO:
+    case AST_EXTRN:
+    case AST_GLOBAL_DECL: kids_add(&k, n->as.decl.init); break;
+    case AST_FUNCTION:
+        kids_add(&k, n->as.func.params);
+        kids_add(&k, n->as.func.body);
+        break;
+    default: break;
+    }
+    return k;
+}
+
+typedef struct {
+    char *buf;
+    size_t len, cap;
+} Prefix;
+
+static void prefix_push(Prefix *p, const char *s) {
+    size_t n = strlen(s);
+    if (p->len + n + 1 > p->cap) {
+        p->cap = (p->len + n + 1) * 2;
+        p->buf = xrealloc(p->buf, p->cap);
+        if (!p->buf) abort();
+    }
+    memcpy(p->buf + p->len, s, n + 1);
+    p->len += n;
+}
+
+static void prefix_pop(Prefix *p, size_t old_len) {
+    p->len = old_len;
+    p->buf[old_len] = '\0';
+}
+
+static void print_tree(const AstNode *node, Prefix *p, bool is_last);
+
+static void print_children(const Kids *k, Prefix *p) {
+    for (size_t i = 0; i < k->n; i++)
+        for (const AstNode *c = k->heads[i]; c; c = c->next)
+            print_tree(c, p, !c->next && i + 1 == k->n);
+}
+
+static void print_tree(const AstNode *node, Prefix *p, bool is_last) {
+    fputs(p->buf, stdout);
+    fputs(is_last ? "└── " : "├── ", stdout);
+    print_node_label(node);
+
+    size_t mark = p->len;
+    prefix_push(p, is_last ? "    " : "│   ");
+    Kids k = get_kids(node);
+    print_children(&k, p);
+    prefix_pop(p, mark);
+}
+
+void print_ast(AstNode *root) {
+    static char outbuf[1 << 16];
+    setvbuf(stdout, outbuf, _IOFBF, sizeof outbuf);
+
+    Prefix p = {0};
+    prefix_push(&p, "");
+
+    for (const AstNode *n = root; n; n = n->next) {
+        print_node_label(n);
+        Kids k = get_kids(n);
+        print_children(&k, &p);
+    }
+
+    fflush(stdout);
+    free(p.buf);
+}
