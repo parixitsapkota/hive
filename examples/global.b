@@ -1,4 +1,5 @@
-one, two;
+one;
+two;
 global;
 
 main() {

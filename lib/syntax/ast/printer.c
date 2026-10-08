@@ -54,42 +54,46 @@ static VisitAction ast_printer(AstNode *node, const VisitContext *ctx) {
 
     switch (node->kind) {
     case AST_INT:
-        printf(FG_BLACK "%s: " FG_GREEN "\"%zu\"\n" RESET, ast_kind_to_string(node->kind),
+        printf(FGB_CYAN "%s: " FG_GREEN "\"%zu\"\n" RESET, ast_kind_to_string(node->kind),
                node->as.int_val);
         break;
     case AST_IDENT:
-        printf(FG_BLACK "%s: " FG_GREEN "\"%s\"\n" RESET, ast_kind_to_string(node->kind),
+        printf(FGB_CYAN "%s: " FG_GREEN "\"%s\"\n" RESET, ast_kind_to_string(node->kind),
                node->as.ident.name);
         break;
     case AST_STRING:
-        printf(FG_BLACK "%s: " FG_GREEN "\"%s\"\n" RESET, ast_kind_to_string(node->kind),
+        printf(FGB_CYAN "%s: " FG_GREEN "\"%s\"\n" RESET, ast_kind_to_string(node->kind),
                node->as.string.str);
         break;
     case AST_UNARY:
-        printf(FG_BLACK "%s: " FG_YELLOW "op" FG_BLACK " : " FG_RED "`%s`\n" RESET,
+        printf(FGB_CYAN "%s: " FG_YELLOW "op" FGB_CYAN " : " FG_RED "`%s`\n" RESET,
                ast_kind_to_string(node->kind), token_kind_to_str(node->as.unary.op));
         break;
     case AST_BINARY:
-        printf(FG_BLACK "%s: " FG_YELLOW "op" FG_BLACK " : " FG_RED "`%s`\n" RESET,
+        printf(FGB_CYAN "%s: " FG_YELLOW "op" FGB_CYAN " : " FG_RED "`%s`\n" RESET,
+               ast_kind_to_string(node->kind), token_kind_to_str(node->as.binary.op));
+        break;
+    case AST_ASSIGN:
+        printf(FGB_YELLOW "%s: " FG_YELLOW "op" FGB_CYAN " : " FG_RED "`%s`\n" RESET,
                ast_kind_to_string(node->kind), token_kind_to_str(node->as.binary.op));
         break;
     case AST_GLOBAL_DECL:
     case AST_AUTO:
-        printf(FG_BLACK "%s: " FG_GREEN "\"%s\" " FG_BLACK "size: " FG_RED "%zu\n" RESET,
+        printf(FG_RED "%s: " FG_GREEN "\"%s\" " FGB_CYAN "size: " FG_RED "%zu\n" RESET,
                ast_kind_to_string(node->kind), node->as.decl.name, node->as.decl.size);
         break;
     case AST_EXTRN:
-        printf(FG_BLACK "%s: " FG_GREEN "\"%s\"\n" RESET, ast_kind_to_string(node->kind),
+        printf(FG_RED "%s: " FG_GREEN "\"%s\"\n" RESET, ast_kind_to_string(node->kind),
                node->as.decl.name);
     case AST_FUNCTION:
-        printf(FG_BLACK "%s: " FG_GREEN "\"%s\"\n" RESET, ast_kind_to_string(node->kind),
+        printf(FG_RED "%s: " FG_GREEN "\"%s\"\n" RESET, ast_kind_to_string(node->kind),
                node->as.func.name);
         break;
     case AST_CALL:
-        printf(FG_BLACK "%s: " FG_GREEN "\"%s\"\n" RESET, ast_kind_to_string(node->kind),
-               node->as.call.callee);
+        printf(FGB_MAGENTA "%s: " FG_GREEN "\"%s\"\n" RESET,
+               ast_kind_to_string(node->kind), node->as.call.callee);
         break;
-    default: printf(FG_RED "%s\n" RESET, ast_kind_to_string(node->kind)); break;
+    default: printf(FG_RED "%s:\n" RESET, ast_kind_to_string(node->kind)); break;
     }
 
     return VISIT_CONTINUE;

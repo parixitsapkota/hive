@@ -77,6 +77,7 @@ static bool is_expression_delimiter(TokenKind kind) {
     case TOK_COMMA:
     case TOK_C_PREN:
     case TOK_C_BRACKET:
+    case TOK_COLON:
     case TOK_SEMICOLON: return true;
 
     default: return false;
@@ -160,6 +161,7 @@ AstNode *parse_primary(Parser *p) {
     if (is_unary_prefix(kind)) return parse_prefix(p);
     if (next(p)) {
         if (next(p)->kind == TOK_O_PREN) return parse_call(p);
+        // TODO: add postfix precidence and vector subscripting.
     }
     return parse_atom(p);
 }
@@ -189,14 +191,17 @@ AstNode *parse_expr(Parser *p, Precedence prec) {
 
         pconsume(p);
     IF_FAKE_OP: {
-        Precedence next_prec = is_proc_left_Associative(op_prec) ? op_prec + 1 : op_prec;
+        bool assignment = is_proc_left_Associative(op_prec);
+        Precedence next_prec = assignment ? op_prec + 1 : op_prec;
         AstNode *right = parse_expr(p, next_prec);
 
         if (!right) return NULL;
 
         Span span_end = current(p)->span;
         Span span = span_merge(span_start, span_end);
-        left = ast_binary(p->ast, span, AST_BINARY, op, left, right);
+
+        AstKind kind = assignment ? AST_ASSIGN : AST_BINARY;
+        left = ast_binary(p->ast, span, kind, op, left, right);
     }
     }
 

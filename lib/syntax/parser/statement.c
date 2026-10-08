@@ -39,7 +39,7 @@ static AstNode *parse_if(Parser *p) {
     return ast_cond(p->ast, span, condition, then_b, chain);
 }
 
-static AstNode *parse_ctl(Parser *p, AstKind kind) {
+static AstNode *parse_while(Parser *p) {
     Span span_start = current(p)->span;
     pconsume(p);
 
@@ -52,7 +52,7 @@ static AstNode *parse_ctl(Parser *p, AstKind kind) {
     Span end = current(p)->span;
     Span span = span_merge(span_start, end);
 
-    return ast_ctl(p->ast, span, kind, condition, body);
+    return ast_ctl(p->ast, span, AST_WHILE, condition, body);
 }
 
 static AstNode *parse_return(Parser *p) {
@@ -74,6 +74,47 @@ static AstNode *parse_continue(Parser *p) {
     Span span = pconsume(p)->span;
     expect_and_consume(p, TOK_SEMICOLON);
     return ast_new(p->ast, AST_CONTINUE, span);
+}
+
+static AstNode *parse_case(Parser *p) {
+    Span span = pconsume(p)->span;
+    AstNode *expr = parse_expr(p, PREC_NONE);
+    expect_and_consume(p, TOK_COLON);
+
+    NodeChain statements = {0};
+    while (current(p)->kind != TOK_CASE && current(p)->kind != TOK_C_BRACE) {
+        chain_append(&statements, parse_statement(p));
+    }
+
+    return ast_ctl(p->ast, span, AST_CASE, expr, statements.first);
+}
+
+static AstNode *parse_switch_body(Parser *p) {
+    expect_and_consume(p, TOK_O_BRACE);
+
+    NodeChain cases = {0};
+    while (current(p)->kind != TOK_C_BRACE) {
+        chain_append(&cases, parse_case(p));
+    }
+
+    expect_and_consume(p, TOK_C_BRACE);
+    return cases.first;
+}
+
+static AstNode *parse_switch(Parser *p) {
+    Span span_start = current(p)->span;
+    pconsume(p);
+
+    expect_and_consume(p, TOK_O_PREN);
+    AstNode *condition = parse_expr(p, PREC_NONE);
+    expect_and_consume(p, TOK_C_PREN);
+
+    AstNode *body = parse_switch_body(p);
+
+    Span end = current(p)->span;
+    Span span = span_merge(span_start, end);
+
+    return ast_ctl(p->ast, span, AST_SWITCH, condition, body);
 }
 
 typedef struct {
@@ -187,8 +228,8 @@ static AstNode *parse_statement(Parser *p) {
     case TOK_EXTRN: return parse_extrn_decl(p);
     case TOK_RETURN: return parse_return(p);
     case TOK_IF: return parse_if(p);
-    case TOK_WHILE: return parse_ctl(p, AST_WHILE);
-    case TOK_SWITCH: return parse_ctl(p, AST_SWITCH);
+    case TOK_WHILE: return parse_while(p);
+    case TOK_SWITCH: return parse_switch(p);
     case TOK_O_BRACE: return parse_body(p);
     default: {
         AstNode *expr = parse_expr(p, PREC_NONE);
@@ -227,7 +268,7 @@ AstNode *parse_global_decl(Parser *p) {
                     name.is_vec, name.size, ivals);
 }
 
-static bool check_kind(Parser *p, TokenKind kind) {
+static inline bool check_kind(Parser *p, TokenKind kind) {
     return current(p) && current(p)->kind == kind;
 }
 
@@ -266,9 +307,7 @@ AstNode *parse_func(Parser *p) {
     size_t paramc = 0;
     Token *close = NULL;
 
-    if (!expect_and_consume(p, TOK_O_PREN)) {
-        sync_params(p);
-    } else if (!parse_param_list(p, &params, &paramc)) {
+    if (!expect_and_consume(p, TOK_O_PREN) || !parse_param_list(p, &params, &paramc)) {
         sync_params(p);
     } else if (check_kind(p, TOK_C_PREN)) {
         close = pconsume(p);
