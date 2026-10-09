@@ -149,6 +149,8 @@ struct AstNode {
     } as;
 };
 
+VarInfo *var_info(Arena *arena, VarKind kind);
+
 AstNode *ast_new(Arena *arena, AstKind kind, Span span);
 
 AstNode *ast_int_val(Arena *a, Span span, size_t int_val);
