@@ -10,7 +10,8 @@
 #include "include/syntax/parser/parser.h"
 
 int main(const int argc, const char *const *argv) {
-    if (argc != 2) fatal("incorrect usage! \nCorrect usage : %s <file_pat> ", argv[0]);
+    if (argc != 3)
+        fatal("incorrect usage! \nCorrect usage : %s <file_pat> <output>", argv[0]);
 
     const char *file_name = argv[1];
     Source *src = init_source(file_name);
@@ -23,16 +24,12 @@ int main(const int argc, const char *const *argv) {
 
     Sema *sema_context = init_sema(src, root_node);
     sema(sema_context);
-    free_sema(sema_context);
 
     Cgen *cgen_context = init_cgen(src, root_node);
+    cgen(cgen_context);
+    cgen_emit_object(cgen_context, argv[2]);
 
-    char *ir = LLVMPrintModuleToString(cgen(cgen_context));
-    puts("\n");
-    puts(ir);
-    LLVMDisposeMessage(ir);
-
-    free_cgen(cgen_context);
+    free_sema(sema_context);
 
     free_parser(parser_context);
     free_lexer(lexer_context);

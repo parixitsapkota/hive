@@ -9,6 +9,7 @@ compile_commands.json
 
 # Project generated.
 # Bins
+*.o
 *.out
 *.exe
 *.bin
