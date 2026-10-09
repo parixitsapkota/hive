@@ -1,3 +1,7 @@
+#include <llvm-c/Core.h>
+#include <stdio.h>
+
+#include "include/cgen/cgen.h"
 #include "include/core/diags.h"
 #include "include/core/source.h"
 #include "include/sema/sema.h"
@@ -20,6 +24,15 @@ int main(const int argc, const char *const *argv) {
     Sema *sema_context = init_sema(src, root_node);
     sema(sema_context);
     free_sema(sema_context);
+
+    Cgen *cgen_context = init_cgen(src, root_node);
+
+    char *ir = LLVMPrintModuleToString(cgen(cgen_context));
+    puts("\n");
+    puts(ir);
+    LLVMDisposeMessage(ir);
+
+    free_cgen(cgen_context);
 
     free_parser(parser_context);
     free_lexer(lexer_context);

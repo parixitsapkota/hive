@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include <llvm-c/Core.h>
+
 #include "include/core/arena.h"
 #include "include/core/location.h"
 #include "include/syntax/lexer/tokens.h"
@@ -19,6 +21,7 @@ typedef enum {
 
 typedef struct {
     VarKind kind;
+    LLVMValueRef llvm_vl_ref;
 } VarInfo;
 
 typedef enum {

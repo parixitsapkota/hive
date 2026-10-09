@@ -1,6 +1,8 @@
 LIB_DIR := $(ROOT_DIR)/lib
 TARGET  := $(ROOT_DIR)/$(OUTPUT)
 
+LLVM_FLAGS := $(shell llvm-config --cflags --ldflags --libs core analysis target native --system-libs)
+
 SRCS := $(sort $(shell find $(LIB_DIR) -name '*.c'))
 OBJS := $(patsubst $(LIB_DIR)/%.c,$(BUILD)/lib/%.o,$(SRCS))
 DEPS := $(OBJS:.o=.d)
@@ -20,7 +22,7 @@ $(KEYWORDS).h: $(KEYWORDS).gperf
 
 $(TARGET): $(OBJS)
 	@printf '$(COLOR_GREEN)[+] Linking %s ($(MODE))$(COLOR_RESET)\n' $(notdir $@)
-	@$(CC) $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)
+	@$(CC) $(CFLAGS) $(LLVM_FLAGS) -o $@ $(OBJS) $(LDFLAGS)
 
 %.c:
 	@:
