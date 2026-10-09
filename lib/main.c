@@ -1,5 +1,6 @@
 #include "include/core/diags.h"
 #include "include/core/source.h"
+#include "include/sema/sema.h"
 #include "include/syntax/ast/ast.h"
 #include "include/syntax/lexer/lexer.h"
 #include "include/syntax/parser/parser.h"
@@ -13,7 +14,13 @@ int main(const int argc, const char *const *argv) {
     Token *tokens = lexer_lex(lexer_context);
     Parser *parser_context = init_parser(src, tokens);
     AstNode *root_node = parser_parse(parser_context);
+
     print_ast(root_node);
+
+    Sema *sema_context = init_sema(src, root_node);
+    sema(sema_context);
+    free_sema(sema_context);
+
     free_parser(parser_context);
     free_lexer(lexer_context);
     free_source(src);

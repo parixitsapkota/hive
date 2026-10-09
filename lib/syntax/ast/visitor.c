@@ -64,21 +64,21 @@ static VisitAction walk_children(const Walker *w, AstNode *node, size_t d) {
     case AST_SWITCH:
     case AST_CASE:
         ONE(node->as.ctl.expr, ROLE_COND);
-        ONE(node->as.ctl.body, ROLE_BODY);
+        LIST(node->as.ctl.body, ROLE_BODY);
         break;
 
     case AST_IF:
     case AST_TERNARY:
         ONE(node->as.cond.cond, ROLE_COND);
-        ONE(node->as.cond.then_b, ROLE_THEN);
-        ONE(node->as.cond.else_b, ROLE_ELSE);
+        LIST(node->as.cond.then_b, ROLE_THEN);
+        LIST(node->as.cond.else_b, ROLE_ELSE);
         break;
 
     case AST_CALL: LIST(node->as.call.args, ROLE_ARG); break;
 
     case AST_FUNCTION:
         LIST(node->as.func.params, ROLE_PARAM);
-        ONE(node->as.func.body, ROLE_BODY);
+        LIST(node->as.func.body, ROLE_BODY);
         break;
     }
 
